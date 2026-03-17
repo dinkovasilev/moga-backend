@@ -1,0 +1,86 @@
+{%extends 'player/templates/tasks/mytasks_list.html'%}
+
+{%block taskscontent%}
+<div class="center">
+	<form id="task-create-form" method="post" novalidate class="task-data">
+	 	{%csrf_token %}
+	 	
+	 	<h2 class='text-center'>{% if task %} Промени {%else %} Създай {%endif%} задача</h2>
+		<div>
+		 <b><label for="maincategory">Раздел: </label></b>
+		 <select 
+			 name="maincategory" 
+			 id="main-categories" 
+			 onchange="getSubCategories(this.value)">
+			 <option value="" selected="selected"></option>
+			 {% for cat in categories%}
+				 <option 
+					 value="{{cat.id}}" 
+					 class="category-name">{{cat.name}}
+				 </option>
+			 {%endfor%}
+		 </select>
+		</div>
+		<div>
+		 <b><label for="category">Категория: </label></b>
+		 <select name="category" id="category" name="agent_id" required>
+			 <option value=""></option>
+		 </select>
+		</div>
+
+		{% for field in form %}
+			<b>{{ field.label_tag }} {{ field }} </b> 
+			{% if field.errors %}
+				<small class="error">{{ field.errors|striptags  }}</small> 
+			{% endif %}
+		{% endfor %}
+		
+		<div class="form-buttons">
+			<input type="submit" value="Запиши" class="btn btn-primary"/>
+			<a href="{%url 'owntasks'%}" class="btn btn-outline">Откажи</a>
+		</div>
+	</form>
+</div>
+
+{{ categories|json_script:"categories" }}
+<script>
+	
+	const selectField = document.getElementById('category');
+	const form = document.getElementById("task-create-form");
+	form.addEventListener('submit', function(event) {
+		if (!selectField.value) {
+			event.preventDefault();
+			alert('Моля, изберете раздел и категория.');
+		}
+	});
+	const jsonData = JSON.parse(document.getElementById('categories').textContent);
+       
+	function getSubCategories(categoryID){
+		console.log(categoryID)
+		var selectSubCategories = document.getElementById('category')
+		selectSubCategories.setAttribute('required', 'required');
+		while (selectSubCategories.firstChild) {
+            selectSubCategories.removeChild(selectSubCategories.firstChild);
+        }
+		for (let i = 0; i < jsonData.length; i++) {
+            if (jsonData[i].id == categoryID) {
+                for (let j = 0; j < jsonData[i].subcategories.length; j++) {
+                    console.log(jsonData[i].subcategories[j].name);
+                    let newOption = document.createElement('option');
+                    newOption.textContent = jsonData[i].subcategories[j].name;
+                    newOption.value = jsonData[i].subcategories[j].id;
+                    selectSubCategories.appendChild(newOption);
+                }
+                break;
+            }
+        }
+	}
+</script>
+
+{%endblock taskscontent%}
+
+<!--
+	<label for="childcat">"Тест на селекцията"</label>
+	<select name="childcat" id="subcategory">
+</select>
+-->

@@ -1,0 +1,30 @@
+{%extends 'base.html'%}
+
+{%block content%}
+    <div><br><br>
+        <h2>Съобщения</h2>
+        {% if taskmessages %}
+            <h3>в {{task.category}} {{task.name}} </h3>
+            <ul class="message-list">
+            {% for msg in taskmessages %}
+                <li>
+                    <div>
+                        {{forloop.counter}}. 
+                        Изпратено от: {{msg.player.username}}  
+                        на: {{msg.message_time}}<br/> 
+                        Съдържание: {{msg.message_text|urlize}}<br/> 
+                        {% if task.task_type == 'ЛЕКЦИЯ' or task.task_type == 'ДИСКУСИЯ'%}
+                            <a href="{% url 'message-upvote' msg.message_id %}" class="voteup">ДА</a> 
+                            Рейтинг: {{msg.rating}}	
+                            <a href="{% url 'message-downvote' msg.message_id %}"class="votedown">НЕ</a>
+                        {% endif %}
+                        {% if msg.image %}
+                            <p>Прикачен файл: <a href="{{ msg.image.url }}">снимка</a></p>
+                            <img src="{{ msg.image.url }}">
+                        {% endif %}
+                    </div> 
+                </li>
+            {% endfor %}
+        {%endif%}
+    </div>
+{%endblock content%}

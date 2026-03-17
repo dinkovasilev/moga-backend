@@ -1,0 +1,21 @@
+
+<script>
+    function goHome(){
+        var category  = document.getElementById("task_category").value;
+        if (category!= "Избери категория на задачата")
+        {
+            window.location.href = "{% url 'home'%}";
+        }
+        else {alert("Не е избрана категория на задачата")}
+    }
+</script>
+<div class="center">
+    {%load static%}
+    <h2>КАТЕГОРИЯ НА ЗАДАЧАТА</h2>
+    <select id="task_category" name="cactegory" onchange="goHome()">
+        <option class="catoption" value="">Избери категория на задачата</option>
+        {% for cat in categories %}
+        <option class="catoption" value="{{ cat.category_name }}">{{ cat.category_name }}</option>
+        {% endfor %}
+    </select>
+</div>

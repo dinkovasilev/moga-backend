@@ -1,0 +1,133 @@
+{%extends 'player/templates/tasks/mytasks_list.html'%}
+
+{%block taskscontent%}
+    {%load static%}
+    <link rel="stylesheet" type="text/css" href="/static/css/lobby.css" />
+    <div class="lobby-container">
+        <div class="row d-flex justify-content-center">
+            <div class="col-6">
+                <h3>Чат</h3>
+                <div class="chat-log">
+                    {%if target%}
+                        <label>{{target.category.name}}:{{target.name}}:{{target.description}}</label>
+                    {% endif %}
+                    
+                    <textarea 
+                        class="form-control" 
+                        id="chat-text" rows="50" 
+                        readonly>{%if chatlog%}{{chatlog}}{%endif%}</textarea><br>
+                    
+                </div>
+                <div class="room-users">
+                    {% if users_in_room %}
+                    
+                        <h4>В момента в чата</h4>
+                        {% for user in users_in_room%}
+                            <p>{{user}}</p>
+                        {%endfor%}
+                    
+                    {% endif %}
+                </div>
+                <div class="send-message">
+                    <input class="form-control" id="input" type="text"></br>
+                    <input class="logo" id="submit" type="button" value="ИЗПРАТИ">
+                </div>
+            </div>
+        </div>
+    </div>
+
+    {{ request.user.username|json_script:"user_name" }}
+    {{ lobby_name|json_script:"lobby-name" }}
+    <script>
+        const lobby = JSON.parse(document.getElementById('lobby-name').textContent);
+        console.log('Стартирам чат на задачата')
+        const socket = new WebSocket(
+            'ws://' +
+            window.location.host +
+            '/ws/chat-server/' +
+            lobby +
+            '/'
+        );
+        socket.onopen = ()=> console.log('Чат сокета е отворен')
+        socket.onmessage = function (e) {
+            const data = JSON.parse(e.data);
+            console.log(data)
+            
+            var logtext = document.querySelector('#chat-text')
+            logtext.value += (data.username + ': ' + data.message + '\n')
+            logtext.focus()
+            logtext.selectionStart = logtext.value.length
+
+            var ru = document.getElementsByClassName("room-users")[0]
+            let inroom = false
+            for(let index=0; index < ru.children.length; index++){
+                if(ru.children[index].innerText == data.username){
+                    inroom = true
+                    break
+                }
+            }
+            
+            if(data.status){
+                console.log('status message')
+                switch(data.status){
+                    case 'left':
+                        console.log(data.username + ' has left discussion!')
+                        for(let index=0; index < ru.children.length; index++){
+                            if(ru.children[index].innerText == data.username){
+                                ru.removeChild(ru.children[index])
+                                break
+                            }
+                        }
+                        break
+                    case 'join':
+                        if(!inroom && data.username != "server"){
+                            console.log('Добавям ' + data.username)
+                            let newParagraph = document.createElement('p');
+                            newParagraph.textContent = data.username
+                            ru.appendChild(newParagraph)
+                        }
+                        break
+                }
+            }
+        }
+                                
+        const user_name = JSON.parse(document.getElementById('user_name').textContent);
+        
+
+        document.getElementById('input').addEventListener('keypress', function (e) {
+            if (e.key === 'Enter') {
+                document.querySelector('#submit').click()
+            }
+        });
+
+        document.querySelector('#submit').onclick = function (e) {
+            const message_input = document.querySelector('#input');
+            const message = message_input.value;
+            socket.send(JSON.stringify({
+                'message': message,
+                'username': user_name,
+            }));
+            message_input.value = '';
+        };
+        //}
+        
+    </script>
+
+
+    
+{%endblock taskscontent%}
+
+    <!-- Optional JavaScript -->
+    <!-- jQuery first, then Popper.js, then Bootstrap JS -->
+<!--
+    <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"
+        integrity="sha384-DfXdz2htPH0lsSSs5nCTpuj/zy4C+OGpamoFVy38MVBnE+IbbVYUew+OrCXaRkfj" crossorigin="anonymous">
+    </script>
+    <script src="https://cdn.jsdelivr.net/npm/popper.js@1.16.1/dist/umd/popper.min.js"
+        integrity="sha384-9/reFTGAW83EW2RDu2S0VKaIzap3H66lZH81PoYlFhbGU+6BZp6G7niu735Sk7lN" crossorigin="anonymous">
+    </script>
+    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"
+        integrity="sha384-B4gt1jrGC7Jh4AgTPSdUtOBvfO8shuf57BaghqFfPlYxofvL8/KUEfYiJOMMV+rV" crossorigin="anonymous">
+    </script>
+
+-->

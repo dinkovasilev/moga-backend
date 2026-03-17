@@ -1,0 +1,209 @@
+{%extends 'base.html'%}
+{%block content%}
+
+<style>
+	#search-form {
+		background-color: rgb(12, 180, 136);
+		width: 100%;
+		height: 30px;
+		border-radius: 5px;
+		display:flex;
+		flex-direction:row;
+		align-items:center;
+	}
+
+	
+	#query {
+		all: unset;
+		font: 18px system-ui;
+		color: #fff;
+		height: 100%;
+		width: 100%;
+		padding: 6px 10px;
+	}
+
+	::placeholder {
+		color: #fff;
+		opacity: 0.7; 
+	}
+
+
+	#search-button {
+		all: unset;
+		cursor: pointer;
+		width: 20px;
+		height: 20px;
+		padding: 20%;
+		font: 12px sans-serif;
+		font-weight: bold;
+		color: white;
+	}
+
+	
+	.subnav {
+		padding-top:50px;
+		position: float;
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		width: 80%;
+		margin: 0 auto;
+		}
+
+
+	.task-menu-button {
+		text-transform: uppercase;	
+		border: 1px solid #000;
+		margin: 7px 0;
+		width: 100%;
+		box-sizing: border-box;
+		background-color: #C1D2CE;
+		color: black;
+		display: block;
+		padding: 12px;
+		text-decoration: none;
+		border-radius: 10px;
+		}
+	.new-task-button{
+		background-color:transparent;
+		border: 1px solid red;
+		text-decoration: none;
+		border-radius: 10px;
+		margin: 7px 0;
+		width: 100%;
+		display: block;
+		padding:12px;
+		}
+	.subnav a:hover {
+		background-color: #DABC27;
+		color:white;
+		font-size:16px;
+		font-weight: bold;
+		text-decoration: none;
+	}
+
+
+
+	ul {
+	list-style-type: none;
+	margin: 0;
+	padding: 0;
+	width: 200px;
+
+	}
+
+	li a {
+	color: #A84190;
+	padding: 8px 16px;
+	text-decoration: none;
+	width:100%;
+	}
+	
+	/* Change the link color on hover */
+	li a:hover {
+	background-color: #555;
+	color: white;
+	}
+
+	.menu{
+		position: fixed;
+		display: flex;
+		flex-direction: column;
+		
+		overflow-y: auto;
+		border-top-right-radius: 80px 80px;
+		top: 50;
+		left: 0;
+		height: 100%;
+		width: 15%;
+		background-color: #215960;
+	}
+	.menu-title{
+		color: #fdfcda;
+		background-color: grey;
+		height: 50px;
+		width: 100%;
+		padding-left:5px;
+		
+	  }
+
+	
+	  .main-content{
+		padding-top: 70px;
+		margin-left: 16%;
+	  }
+	</style>
+
+
+<div class="container">
+
+	{%block sidemenu%}
+	<div class="menu">
+		<h2 class="menu-title">Задачи</h2>
+
+		<nav class="subnav">
+			<form 
+				id="search-form" 
+				role="search"
+				method="post"
+				action="{% url 'my-task-search' %}">
+				{%csrf_token %}
+				<input type="search" id="query" name="search-query"
+				placeholder="Търси..."
+				aria-label="Търсене в моите задачи">
+				<button type="submit" id="search-button">Намери</button>
+			</form>
+			
+			<a href="{%url 'mytasks-list'%}" class="task-menu-button">Всички</a>
+			<a href="{% url 'owntasks' %}" class="task-menu-button">Персонални</a>
+			<a href="{% url 'externtasks' %}" class="task-menu-button">Участия</a>
+			<a href="{% url 'waitingtasks' %}" class="task-menu-button">Лекции и беседи</a>
+			<a href="{% url 'mytasks-chatlist' %}" class="task-menu-button">ЧАТ</a>
+			<a 
+				class="new-task-button"
+				href="{% url 'task-create' %}" 
+				style="
+					font-size:18px; 
+					font-weight: bold;
+					color:red;">
+				Нова задача
+			</a>
+		</nav>
+	</div>
+	{%endblock sidemenu%}
+
+	<div class="main-content">
+		
+		{%block taskscontent %}
+			
+			<h3>Всички</h3>
+
+			{% if tasks %}
+			<ul class="tasks">
+				{% for task in tasks %}
+					<li>
+						<a 
+							href="{% url 'task-actions' task.task_id %}" 
+							class="task-list">
+							{{ task.name }} <br/>
+							{{ task.description }} 
+							{%if not task.is_hidden%}
+							- ЧАТ
+							{%endif%}
+						</a> 
+						
+						{%if not task.is_hidden%}
+							<i class={{task.status}}>{{task.status}}</i>
+						{%endif%}
+					</li>
+
+				{% endfor %}
+			{% else %}
+				<h2> Няма съдържание в кутиите! <a href="{%url 'task-create'%}">Създай</a></h2>
+			{% endif %}
+			</ul>
+		{%endblock taskscontent%}
+	</div>
+</div>
+{%endblock content%}
+

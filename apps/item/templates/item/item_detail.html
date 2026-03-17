@@ -1,0 +1,20 @@
+{%extends 'base.html'%}
+{% load static%}
+{%block content%}
+
+	<article class="center">
+		{% if item%}
+			<header>
+				<h2>Категория: {{ item.category }}</h2>
+			</header>
+			<p>Заглавие: {{item.name}}</p>
+			<p>Кратко описание: {{item.description}}</p>
+			<p>Статус: {{item.status}}</p>
+					
+		{% else %}
+			<header>
+				<h2>Обекта е недостъпен.</h2>
+			</header>
+		{% endif %}
+	</article>
+{%endblock content%}

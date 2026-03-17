@@ -1,0 +1,60 @@
+{%extends 'content/subcontent.html'%}
+
+{%block targetcontent%}
+
+	<div class="container">
+		{% if tasks %}
+		<table>
+			<colgroup>
+				<col span="5" style="background-color:rgb(232, 246, 175)">
+				<col style="background-color:lightblue">
+			</colgroup>
+			<tr>
+				<th>Статус</th>
+				<th>Тип</th>
+				<th>Област</th>
+				<th>Раздел</th>
+				<th>Заглавие</th>
+				<th>Изпълнители</th>
+				<th>Слушатели</th>
+				<th>Публикации</th>
+			</tr>
+		
+				{% for task in tasks %}
+					<tr>
+						<td>{{ task.status }}</td>
+						<td>{{ task.task_type }}</td>
+						<td>{{ task.category.parent }}</td>
+						<td>{{ task.category }}</td>
+						<td>
+							<a href="{% url 'task-take-or-wait' task.task_id %}" >
+								{{ task.name }}
+							</a>
+						</td>
+						<td>{{ task.workers_count }}</td>
+						<td>{{task.listeners_count}}</td>
+						<td>{{task.msg_count}}</td>
+					</tr>
+				{% endfor %}
+		</table>
+		{% else %}
+			<p> Няма публикации!</p>
+		{% endif %}
+		
+	</div>
+	{%endblock targetcontent%}
+
+<!--
+
+		<div>
+		<img src="/static/images/Task-PNG-Clipart.png" alt="">
+		<h3>
+			<label for="filter-action">Избор на раздел</label>
+			<select name="filter-action" id="" onchange="window.location.href=this.value;">
+			<option value="#">-------------------</option>
+			<option value="{%url 'alltasks'%}">задачи</option>
+			<option value="{%url 'allitems'%}">желания</option>
+			</select>
+		</h3>
+		</div>
+-->

@@ -1,0 +1,117 @@
+{%extends 'content/content.html'%}
+
+{%block subcontent%}
+<style>
+	.info-text {
+		width: 100%; 
+		border-radius: 10px;
+		border: 2px solid red; 
+		padding: 10px; 
+		background-color: #DDCB6D;
+	}
+	
+	.actions-menu{
+		margin-top: 20px;
+		position: float;
+		display: flex;
+		flex-direction: row;
+		overflow-y: auto;
+		height: 100%;
+		width: 100%;
+		background-color: #715960;
+		border: 2px solid red;
+		border-radius:10px;
+	}
+	.action-button {
+		display: inline-block;
+		text-transform: uppercase;	
+		border: 2px solid #000;
+		width: 100%;
+		box-sizing: border-box;
+		background-color: #C1D2CE;
+		color: black;
+		display: block;
+		text-decoration: none;
+		border-radius: 10px;
+	}
+	.action-button :hover{
+		background-color: green;
+		border-radius: 10px;
+	}
+	.action-button-title {
+		color: black;
+		width:100%;
+		height:100%;
+		text-align:center;
+		font-weight: bold;
+	}
+
+</style>
+	<article class="center">
+		{% if task%}
+			<header>
+				<h2>Категория: {{ task.category }}</h2>
+			</header>
+			<div class='info-text'>	
+				<!--p>Идентификатор: {{task.task_id}}</p-->
+				<p>Тип на задачата: {{task.task_type}}</p>
+				<p>Заглавие: {{task.name}}</p>
+				<p>Кратко описание: {{task.description}}</p>
+				<h3><p>Статус: {{task.status}}</p></h3>
+				{% if task.waiting_list > 0%}
+					<p>Списък с чакащи: {{task.waiting_list}}</p>
+				{% endif %}
+				{% if task.heroes > 0%}
+					<p>Изпълнители: {{task.heroes}}</p>
+				{% endif %}
+				<p>Запълване на екип:<h4> {{task.load}}% </h4></p>
+			</div>
+
+			<div class='actions-menu'>
+				{% if task.status != 'ЗАВЪРШЕНА'%}
+					
+					{% if task.task_type == 'ДИСКУСИЯ'%}
+						<div class='action-button'>	
+							<a href="{%url 'task-take' task.task_id %}">
+								<div class='action-button-title'><i>ВЛИЗАНЕ В ДИСКУСИЯТА</i></div>
+							</a>
+						</div>
+					{% elif task.task_type == 'ЛЕКЦИЯ'%}
+						<div class='action-button'>	
+							<a href="{%url 'task-wait' task.task_id %}">
+								<div class='action-button-title'><i>ЗАПИСВАНЕ ЗА ЛЕКЦИЯ</i></div>
+							</a>
+						</div>
+						<div class='action-button'>	
+							<a href="{%url 'task-take' task.task_id %}">
+								<div class='action-button-title'><i>ПРОВЕДИ ЛЕКЦИЯ</i></div>
+							</a>
+						</div>
+						
+						
+					{% else %}
+					
+						{% if task.workers_count < task.capacity %}
+							<div class='action-button'>	
+								<a href="{%url 'task-take' task.task_id %}">
+									<div class='action-button-title'><i>ИЗВЪРШИ {{task.task_type}}</i></div>
+								</a>
+							</div>
+						{% endif %}
+
+					{% endif %}
+					
+					{% if task.status == 'АРХИВИРАНА' %}
+						<div class='action-button'>	
+							<a href="{% url 'task-history' task.task_id %}">
+								<div class='action-button-title'><i>ИСТОРИЯ</i></div>
+							</a>
+						</div>
+					{% endif %}
+					
+				{% else %}
+				{% endif %}
+			</div>
+		{% endif %}
+	</article>
+{%endblock subcontent%}

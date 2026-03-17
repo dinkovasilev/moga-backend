@@ -1,0 +1,28 @@
+{%extends 'base.html'%}
+
+{%block content%}
+	<br/>
+	<div>
+		<article class="task">
+			<header>
+				<h2>Категория: {{ item.category }}</h2>
+			</header>
+			<p>Тип на предмета: {{item.name}}</p>
+			<p>Заглавие: {{item.name}}</p>
+			<p>Кратко описание: {{item.description}}</p>
+			<p>Статус: {{item.status}}</p>
+			{% if item.quantity > 0%}
+				<p>Количество: {{item.quantity }}</p>
+			{% endif %}
+			<p>Тип на обявата: {{item.item_type}}</p>
+			<p>ID: {{item.item_id}}</p>
+		</article>
+		<br/>
+		{% if item.item.hero == None %}
+			<a 
+				href="{% url 'item-deliver' item.item_id %}" 
+				class="task-list">ДОСТАВИ
+			</a> 
+		{% endif %}
+	</div>
+{%endblock content%}

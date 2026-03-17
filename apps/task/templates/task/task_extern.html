@@ -1,0 +1,31 @@
+{%extends 'tasks/mytasks_list.html'%}
+
+{%block taskscontent%}
+
+ <article class="task">
+	<header>
+		<h2>Категория: {{ task.category }}</h2>
+	</header>
+	<p>Тип на задачата: {{task.task_type}}</p>
+	<p>Заглавие: {{task.name}}</p>
+	<p>Кратко описание: {{task.description}}</p>
+	<p>Статус: {{task.status}}</p>
+	{% if task.listeners_count > 0%}
+		<p>Слушатели: {{task.listeners_count}}</p>
+	{% endif %}
+	{% if task.workers_count > 0%}
+		<p>Участници: {{task.workers_count}}</p>
+	{% endif %}
+	<p>Запълване на екип за изпълнение: {{task.load}}%</p>
+</article>
+<div>
+	<a href="{% url 'task' task.task_id %}">{{ task.category }}:{{ task.name }}</a> 
+	{% if task.task_type == 'ДИСКУСИЯ' %}
+		<a href="{%url 'task-cancel' task.task_id %}" class="">НАПУСНИ</a>	
+	{% else %}
+		<a href="{%url 'task-finish' task.task_id %}" class="finish">ЗАВЪРШИ</a>
+		<a href="{%url 'task-cancel' task.task_id %}" class="cancel">ОТКАЖИ</a>
+		<a href="{%url 'task-message' task.task_id %}"><i class="bi bi-plus">Съобщение</i></a>
+	{% endif %}
+</div>
+{%endblock taskscontent%}

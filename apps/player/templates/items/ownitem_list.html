@@ -1,0 +1,59 @@
+{%extends 'items/myitems_list.html'%}
+
+{%block itemscontent%}
+
+<div>
+	<h3>Мои обяви</h3>
+	{% if items %}
+	<ul class="tasks">
+		{% for item in items %}
+			<li><a href="{% url 'item' item.item_id %}" class="task-list">{{ item.category }}</a> 
+				<div  class="task-controls">
+				 	<a href="{%url 'item-delete' item.item_id %}"><i class="bi bi-trash"></i> </a>
+					<a href="{%url 'item-message' item.item_id %}"><i class="bi bi-plus">Съобщение</i></a>
+					{% if item.item.hero != None %}
+						<br/>
+						<h4>Доставчик:</h4>
+						<p class="hero" heroname="{{item.item.hero}}">{{item.item.hero}},</p>
+					{%endif%}
+					<div id="hero-options"></div>
+				</div> 
+		    </li>
+		{% endfor %}
+	{% else %}
+		<p>🎉 Нямаш публикувани предмети! <a href="{%url 'item-create'%}">Създай</a></p>
+	{% endif %}
+	</ul>
+	<script>
+		let heroes = document.querySelectorAll('p.hero') /*getElementsByClassName("name");*/
+		let container = document.getElementById('hero-options')
+		heroes.forEach(hero => {
+			hero.addEventListener("click", function()
+			{
+				clearContainer(container);
+				heroBlockOptions(container,hero);
+			})
+		})
+
+		function heroBlockOptions(container,hero){
+			let heroname = hero.attributes.heroname.value;
+			let block = document.createElement('a');
+			let option_name = document.createTextNode('БЛОКИРАЙ');
+			block.href = '/ban/' + heroname ;
+			block.appendChild(option_name);
+			container.append(block);
+			console.log(heroname);
+		}
+
+		function clearContainer(container){
+			while(container.firstChild){
+				caontainer.removeChilld(container.firstChild)
+			}
+		}
+	</script>
+</div>
+{%endblock itemscontent%}
+
+<!--
+<a href="{%url 'item-update' item.item_id %}"><i class="bi bi-pencil-square"></i></a>
+-->

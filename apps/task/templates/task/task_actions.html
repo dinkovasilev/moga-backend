@@ -1,0 +1,169 @@
+{%extends 'tasks/mytasks_list.html'%}
+
+{%block taskscontent%}
+<style>
+	.info-text {
+		width: 100%; 
+		border-radius: 10px;
+		border: 2px solid red; 
+		padding: 10px; 
+		background-color: #DDCB6D;
+	}
+	
+	.actions-menu{
+		margin-top: 20px;
+		position: float;
+		/*display: flex;*/
+		display: inline-block;
+		flex-direction: row;
+		overflow-y: auto;
+		height: 100%;
+		width: 100%;
+		background-color: #715960;
+		border: 2px solid red;
+		border-radius:10px;
+	}
+	.action-button {
+
+		text-transform: uppercase;	
+		border: 2px solid #000;
+		width: 100%;
+		box-sizing: border-box;
+		background-color: #C1D2CE;
+		color: black;
+		text-decoration: none;
+		border-radius: 10px;
+	}
+	.action-button :hover{
+		background-color: red;
+		border-radius: 10px;
+	}
+	.action-button-title {
+		color: black;
+		width:100%;
+		height:100%;
+		text-align:center;
+		font-weight: bold;
+	}
+
+</style>
+	<article class="task">
+		<header>
+			<h2>Детайли за задачата</h2>
+		</header>
+	<div class='info-text'>		
+		<P>Раздел:<h4> {{ task.category.parent }} </h4></P>
+		<p>Категория: {{ task.category }}</p>
+		<p>Тип на задачата: {{task.task_type}}</p>
+		<p>Заглавие: {{task.name}}</p>
+		<p>Кратко описание: {{task.description}}</p>
+		<p>Статус: {{task.status}}</p>
+		{% if task.listeners_count > 0%}
+			<p>Слушатели: {{task.listeners_count}}</p>
+		{% endif %}
+		{% if task.workers_count > 0%}
+			<p>Участници: {{task.workers_count}}</p>
+		{% endif %}
+		<p>Запълване на екип за изпълнение: {{task.load}}%</p>
+	</div>	
+	</article>
+	{% comment %}
+	{% for action in actions %}	
+	<p>{{action}}</p>
+	{%endfor%}
+	{% endcomment %}
+	<div class='actions-menu'>
+		{% for action in actions %}	
+
+			{% if action == 'FINISH' %}
+				<div class='action-button'>	
+					<a href="{%url 'task-finish' task.task_id %}">
+						<div class='action-button-title'><i>ЗАВЪРШИ</i></div> 
+					</a>
+				</div>
+			{% endif %}
+			
+			{% if action == 'EDIT' %}
+				<div class='action-button'>	
+					<a href="{%url 'task-update' task.task_id %}">
+						<div class='action-button-title'><i>ПРОМЕНИ</i></div> 
+					</a>
+				</div>
+			{% endif %}
+			
+			{% if action == 'REMOVE' %}
+				<div class='action-button'>	
+					<a href="{%url 'task-remove' task.task_id %}">
+						<div class='action-button-title'><i>ПРЕМАХНИ</i></div> 
+					</a>
+				<div>
+			{% endif %}
+
+			{% if action == 'CANCEL' %}
+				<div class='action-button'>	
+					<a href="{%url 'task-cancel' task.task_id %}">
+						<div class='action-button-title'><i>ОТПИШИ СЕ</i></div> 
+					</a>
+				</div>
+			{%endif%}
+			
+			{% if action == 'LEAVE' %}
+				<div class='action-button'>	
+					<a href="{%url 'task-removewait' task.task_id %}">
+						<div class='action-button-title'><i>НАПУСНИ</i></div> 
+					</a>
+				</div>
+			{%endif%}
+			
+			{% if action == 'POST' %}
+				<div class='action-button'>	
+					<a href="{%url 'task-message' task.task_id %}">
+						<div class='action-button-title'><i>Ново съобщение</i></div>
+					</a>
+				</div>
+				{%if task.msg_count > 0%}
+					<div class='action-button'>	
+						<a href="{% url 'task-messages' task.task_id %}">
+							<div class='action-button-title'><i>ПОЩА</i></div> 
+						</a> 
+					</div>
+				{%endif%}
+			{%endif%}
+
+			{%if action == 'UNSUBSCRIBE'%}
+				<p>Блокиран си за тази задача</p>
+				<div class='action-button'>	
+					<a href="{%url 'task-finish' task.task_id %}">
+						<div class='action-button-title'><i>ПРЕМАХНИ</i></div> 
+					</a>
+				</div>
+			{%endif%}
+		{% endfor %}
+		
+		{%if not task.is_hidden and 'UNSUBSCRIBE' not in actions%}
+			
+			<div class='action-button'>	
+				<a href="{% url 'lobby-name' 'task' task.task_id %}">
+					<div class='action-button-title'><i><h3>ВЛЕЗ В ЧАТ</h3></i></div>
+				</a> 
+			</div>
+		{%endif%}
+			
+	</div>
+	<script>
+		function archive_task(id){
+			action = confirm("Да архивирами ли?")
+			urltarget = window.location.protocol + '//'
+			urltarget += window.location.hostname + ':'
+			urltarget += window.location.port + '/task/'
+			if(action){
+				urltarget +=  'archive/'	
+			}
+			else{
+				urltarget += 'remove/'
+			}
+			urltarget += id + '/'
+			document.location = urltarget
+		}
+	</script>
+{%endblock taskscontent%}

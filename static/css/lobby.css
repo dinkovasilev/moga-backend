@@ -1,0 +1,21 @@
+
+.lobby-container{
+    display: flex;
+}
+.chat-log{
+    /*display: flex 1;*/
+    float: left;
+    width: 70%;
+    background-color: aqua;
+}
+.room-users{
+    /*display:flex 1;*/
+    float: right;
+    width: 28%;
+}
+.send-message{
+    display: flex 1;
+    float: left;
+    width: 70%;
+}
+

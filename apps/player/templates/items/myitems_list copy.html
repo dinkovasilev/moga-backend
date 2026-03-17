@@ -1,0 +1,50 @@
+{%extends 'base.html'%}
+{%block content%}
+<div class="container">
+	<br/>
+	<h1>Моите желания и предложения</h1>
+	<div class="dropdown">
+		<button class="dropbtn">ИЗБОР НА СПИСЪК</button>
+		<div id="ItemDropdown" class="dropdown-content">
+			<a href="{% url 'ownitems' %}">Искам</a>
+			<a href="{% url 'externitems' %}">Давам</a>
+		</div>
+	</div>
+	<a 
+		href="{% url 'item-create' %}" 
+		class="bi bi-plus-circle" 
+		style="font-size:18px; font-weight: bold;">
+		Ново желание
+	</a>
+	<br/><br/>
+	{%block itemscontent %}
+	{% if items %}
+	<ul class="tasks">
+		{% for item in items %}
+			<li>
+				<a 
+					href="{% url 'item' item.item_id %}" 
+					class="task-list">
+					Категория: {{ item.category }}<br/>
+					Наименование: {{ item.name }} <br/>
+				</a> 
+		    </li>
+
+		{% endfor %}
+	{% else %}
+		<h2> Няма съдържание в кутиите! <a href="{%url 'item-create'%}">Създай</a></h2>
+	{% endif %}
+	</ul>
+	{%endblock itemscontent%}
+</div>
+{%endblock content%}
+
+<!--
+
+<div  class="task-controls">
+				 	<a href="{%url 'task-delete' task.task_id %}"><i class="bi bi-trash"></i> </a>
+					<a href="{%url 'task-update' task.task_id %}"><i class="bi bi-pencil-square"></i></a>
+					<a href="{%url 'task-message' task.task_id %}"><i class="bi bi-plus">Съобщение</i></a>
+		         </div>
+
+-->

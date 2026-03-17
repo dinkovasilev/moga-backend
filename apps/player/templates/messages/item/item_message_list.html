@@ -1,0 +1,68 @@
+{%extends 'messages/item/item_inbox_list.html'%}
+{%block messages%}
+		
+		
+<style>
+	.message-list li{
+		display: flex;
+		justify-content: space-between;
+		align-items: left;
+		width: 100%;
+		border-top: solid 1px var(--color-dark);
+		padding: 0.5rem 0;
+	  }
+	.message-data{
+		display: flex;
+		justify-content: space-between;
+		align-items: left;
+		width: 100%;
+		border-top: solid 1px var(--color-dark);
+		padding: 0.5rem 0;
+	}
+	  .voteup{
+		padding: 0.5rem;
+		background-color: green;
+		text-decoration: none;
+		color: var(--color-white);
+		font-weight: bold;
+		text-transform: uppercase;
+	  }
+	  .voteup:hover {
+		text-decoration: none;
+	  }
+	  .votedown{
+		padding: 0.5rem;
+		background-color: red;
+		text-decoration: none;
+		color: var(--color-white);
+		font-weight: bold;
+		text-transform: uppercase;
+	  }
+	  .votedown:hover {
+		text-decoration: none;
+	  }
+</style>
+
+<div>
+	<h2>Съобщения</h2>
+	{% if itemmessages %}
+		<h3>в {{item.name}} </h3>
+		<ul class="message-list">
+		{% for msg in itemmessages %}
+			<li>
+				<div>
+					{{forloop.counter}}. 
+					Изпратено от: {{msg.player.username}}  
+					на: {{msg.message_time}}<br/> 
+					Съдържание: {{msg.message_text}}<br/> 
+				</div> 
+			</li>
+		{% endfor %}
+		<a href="{%url 'item-message' item.item_id %}"><i class="bi bi-plus">Ново Съобщение</i></a>
+	{% else %}
+		<p> Нямаш съобщения! 
+		</ul>
+	{% endif %}
+		
+</div>
+{%endblock messages%}

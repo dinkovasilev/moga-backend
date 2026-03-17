@@ -1,0 +1,269 @@
+{%load static %}
+<!DOCTYPE html>
+<html lang="en">
+
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <link rel="stylesheet" href="{% static 'css/style.css' %}" />
+        <!--script src="{% static 'js/box_list.js' %}"></script--> 
+        <title>МОГА</title>
+    </head>
+
+    <body>
+        <header class="header">
+            <div class="container">
+            	
+            	<nav class="nav">
+                    
+	            	
+	                {% if request.user.is_authenticated %}
+                        
+                        <a href="{%url 'publications'%}" class="home-image" title="СЪДЪРЖАНИЕ"></a>
+                        <!--a href="{% url 'owntasks' %}"><i class="bi bi-list-task"></i> Моите мисии</a-->
+                        <a href="{%url 'myitems-list'%}" class="wish-image" title="ЖЕЛАНИЯ"></a>
+                        <a href="{%url 'owntasks'%}" class="tasks-image" title="ЗАДАЧИ"></a>
+                        
+                        <a href="{% url 'inbox' %}" class="mail-image" title="ПОЩА"></a>
+                        <a href="{% url 'profile' %}" class="profile-image" title="Профил"></a>
+
+                        
+                        <div class="dropdown" id="notification">
+
+                            {% if count %}
+                                <i id="msgCount" data-count={{count}}></i>
+                                <button 
+                                    id="notelist" 
+                                    class="dropbtn" 
+                                    onclick="showList()"> {{count}}
+                                </button>
+                            {% else %}    
+                                <i id="msgCount" data-count="0"></i>
+                                <button 
+                                    id="notelist" 
+                                    class="dropbtn" 
+                                    onclick="showList()">
+                                </button>
+                            {% endif %}
+                             
+                        
+                        
+                            <div 
+                                id="server-messages" 
+                                class="dropdown-content">
+                                <button id="notificationsCLEAR" onclick="clearList()">Изчисти списъка</button>
+                                <button id="eventsON" onclick="startSSE()">Вкл.Събития </button>
+                                <button id="eventsOFF" onclick="stopSSE()" disabled>Изкл.Събития </button>
+                                {% if notifications %}
+                                    {%for msg in notifications%}
+                                        <p 
+                                            id="{{forloop.counter}"
+                                            data-task_id="{{msg.target_id}}"
+                                            onclick="remove_me(this)">{{msg.message}}</p>
+                                    {% endfor %}
+                                {% endif %}
+                            </div>
+                            
+                        </div>
+
+                       
+                            
+                        <a href="{%url 'home'%}" class="help-image"></a>
+                        <p id="event-message">{{message}}</p>
+	                    {% if messages %}
+                            {% for message in messages %}
+                                <p id="event-message">{{message}}</p>
+                            {% endfor %}
+                        {% endif %}
+
+                        {{ request.user.username|json_script:"note_user_name" }}
+                        <script>
+                            const ws_scheme = window.location.protocol == 'https:' ? 'wss' : 'ws';
+                            const note_user_name = String(JSON.parse(document.getElementById('note_user_name').textContent));
+                            const relative_path = '/ws/notification-server/msgTo' + note_user_name + '/'    
+                            
+                            var ws = null
+
+                            var clear = localStorage.getItem("clear_notifications");
+                            if(clear === 'undefined'){
+                                clear = false
+                            }
+
+                            document.onreadystatechange = function () {
+                                
+                                if (document.readyState == "complete") {
+                                    const notify_socket = new WebSocket(
+                                        'ws://' +
+                                        window.location.host +
+                                        relative_path
+                                    );
+                                    notify_socket.onmessage = function (e) {
+                                        const data = JSON.parse(e.data);
+                                        console.log(data)
+                                        if(data.type == 'status'){
+                                            console.log('Status message from server')
+                                        }
+                                        if(data.type == 'chat'){
+                                            addMessage(data.message,data.target)
+                                        }
+                                        if(data.type == 'notification') {
+                                            addMessage(data.message)
+                                        }
+                                    };
+                                    notify_socket.onclose = function(event) {
+                                        if (event.wasClean) {
+                                            console.log(`[close] Connection closed cleanly, code=${event.code} reason=${event.reason}`);
+                                        } else {
+                                            console.log('[close] Connection died');
+                                        }
+                                    };
+
+                                    notify_socket.onerror = function(error) {
+                                    console.log(`[error]`);
+                                    };
+                                    ws = notify_socket
+                                }
+                            }
+                            
+                            
+                            let eventSource;
+                            const sseData = document.getElementById('sse-data');
+
+                            function startSSE() {
+                                eventSource = new EventSource('/stream/');
+                                eventSource.onmessage = event => {
+                                    document.getElementById('event-message').innerHTML = event.data
+                                }
+
+                                document.getElementById('eventsON').disabled = true;
+                                document.getElementById('eventsOFF').disabled = false;
+                            }
+
+                            function stopSSE() {
+                                if (eventSource) {
+                                    eventSource.close();
+                                }
+                                document.getElementById('eventsON').disabled = false;
+                                document.getElementById('eventsOFF').disabled = true;
+                            }
+
+                            function addMessage(message, target=null) {
+                                var msgList = document.getElementById('server-messages')
+                                let count = document.getElementById('msgCount').getAttribute('data-count');
+                                let increment_count = parseInt(count) + 1
+                                document.getElementById('msgCount').setAttribute('data-count', increment_count);
+                                document.getElementById('notelist').innerHTML = increment_count
+                                
+                                var newAnchor = document.createElement('a');
+                                newAnchor.className = 'message-entry';
+
+                                if(target!=null){
+                                    urltarget = window.location.protocol + '//'
+                                    urltarget += window.location.hostname + ':'
+                                    urltarget += window.location.port + '/socket/'
+                                    urltarget += target + '/'
+                                    newAnchor.href = urltarget
+                                }
+                                else {newAnchor.href = '#';}
+
+                                newAnchor.textContent = message;
+                                newAnchor.style.color = "blue"
+                                msgList.appendChild(newAnchor)
+                            }
+
+                            function remove_me(me){
+                                let count = document.getElementById('msgCount').getAttribute('data-count');
+                                let increment_count = parseInt(count) - 1
+
+                                if(ws!=null){
+                                    ws.send(JSON.stringify({
+                                        'message': me.dataset.task_id,
+                                        'username': note_user_name, 
+                                        'type':'db_notifications_clear',
+                                    }));
+                                }
+                                console.log('remove try of ' + me.id)
+                                me.remove()
+                                
+                                document.getElementById('msgCount').setAttribute('data-count', increment_count);
+                                if(increment_count>0){
+                                    document.getElementById('notelist').innerHTML = increment_count
+                                }
+                                else {
+                                    document.getElementById('notelist').innerHTML =  ''
+                                } 
+                            }
+
+                            function showList() {
+                                document.getElementById("server-messages").classList.toggle("show");
+                                
+                                //clearList()
+                            }
+                            window.onclick = function(event) {
+                                if (!event.target.matches('.dropbtn')) {
+                                    var dropdowns = document.getElementsByClassName("dropdown-content");
+                                    var i;
+                                    for (i = 0; i < dropdowns.length; i++) {
+                                    var openDropdown = dropdowns[i];
+                                    if (openDropdown.classList.contains('show')) {
+                                        openDropdown.classList.remove('show');
+                                    }
+                                    }
+                                }
+                            } 
+                            function clearList(){
+                                const list = document.getElementById('server-messages')
+                                document.getElementById('msgCount').setAttribute('data-count', 0);
+                                document.getElementById('notelist').innerHTML = ''
+                                if (list.hasChildNodes){
+                                    while (list.children.length > 3){
+                                        list.removeChild(list.children[3])
+                                    }
+                                }
+                                localStorage.setItem("clear_notifications", true);
+                                if(ws!=null){
+                                    ws.send(JSON.stringify({
+                                        'message': 'all',
+                                        'username': note_user_name, 
+                                        'type':'db_notifications_clear',
+                                    }));
+                                }
+
+                            }
+                            
+
+                        </script>
+                        
+
+                        
+                    {% else %}
+                        <a href="{%url 'home'%}" class="home-image"></a>
+                        <a href="{% url 'login' %}" class="btn btn-outline">Влизане</a>
+                        <a href="{% url 'register' %}" class="btn btn-primary">Участвай</a>
+                    {% endif %}
+	             </nav>
+            </div>
+        </header>
+        <main>
+
+            <div class="container">
+
+                {%block content %}
+                    {% block sidemenu%}
+                    {%endblock sidemenu%}
+                {%endblock content%}
+
+            </div>
+        </main>
+
+        
+
+        <footer class="footer">
+            <div class="container">
+                <p>Днес: {% now "Y-m-d" %} </p>
+            </div>
+        </footer>
+    </body>
+
+</html>
+

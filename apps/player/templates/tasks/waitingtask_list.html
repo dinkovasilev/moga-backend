@@ -1,0 +1,19 @@
+{%extends 'tasks/mytasks_list.html'%}
+
+{%block taskscontent%}
+	<h3>Лекции и беседи</h3>
+	{% if tasks %}
+	<ul class="tasks">
+		{% for task in tasks %}
+			<li><a href="{% url 'task' task.task_id %}" class="task-list">{{task.category.parent}}: {{ task.category }} - {{task.name}}</a> 
+				<div  class="task-controls">
+					<a href="{%url 'task-removewait' task.task_id %}" class="cancel"><i>НАПУСНИ</i> </a>
+		         </div>
+			</li>
+
+		{% endfor %}
+	{% else %}
+		<p> Не си записан за предстоящи беседи или събития! </p>
+	{% endif %}
+	</ul>
+{%endblock taskscontent%}

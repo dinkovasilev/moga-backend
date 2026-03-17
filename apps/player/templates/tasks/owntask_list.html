@@ -1,0 +1,176 @@
+{%extends 'tasks/mytasks_list.html'%}
+
+{%block taskscontent%}
+
+	<h3>Персонални</h3>
+	{% if tasks %}
+	
+	<ul class='tasks'>
+		{% for task in tasks %}
+			<li>
+				<div >
+					<a href="{% url 'task' task.task_id %}">{{ task.name }}: {{task.description}}</a> 
+					
+					{% if not task.is_hidden %}
+						{% if task.personal %}
+							{%if heroes%}
+								{% for tid, herolist in heroes.items %}
+									{%if tid == task.task_id%}
+										<h4>Участници:
+										{%for hero in herolist%}
+											<p class="hero" heroname="{{hero}}">{{hero}},</p>
+											<div id="{{hero}}" class="options"></div>
+										{% empty %}
+											няма
+										{%endfor%}
+										</h4>
+									{%endif%}
+								{%endfor%}
+							{%endif%}
+						{%endif%}
+					{%endif%}
+
+				</div>
+				
+				
+				<div class="dropdown">
+					<i class={{task.status}}>{{task.status}}</i>
+					<button 
+						id="actions" 
+						class="optbtn" 
+						title="Действия"
+						onclick="showActions(options{{task.task_id}})">.....
+                    </button>
+					<div class="dropdown-content" id="options{{task.task_id}}">
+						
+						{% if not task.is_hidden %}
+						<a href="{%url 'task-update' task.task_id %}"><i></i>Промени</a>
+							
+						{%if task.task_type != 'ЛЕКЦИЯ'%}
+							<a href="{%url 'task-message' task.task_id %}"><i>Ново съобщение</i></a>
+							<a href="{% url 'task-messages' task.task_id %}"><i>записи</i> </a> 
+						<!--p class="new-message">TestMessage</p-->
+						{%else%}
+							{%if task.msg_count > 0 %}
+								<a href="{%url 'task-message' task.task_id %}"><i>Ново съобщение</i></a>
+								<a href="{% url 'task-messages' task.task_id %}"><i>записи</i> </a> 
+							{%endif%}
+						{%endif%}
+						
+							
+							
+							{% if not task.personal %}
+								<a href="{%url 'task-remove' task.task_id %}" class="cancel">ПРЕМАХНИ</a>
+							{%else%}
+								<button id="archive=task" onclick="archive_task('{{task.task_id}}')">ПРЕМАХНИ</button>
+							{%endif%}
+
+							
+
+							<div id="create-message"></div>
+
+							
+								
+						{%else%}
+							<a href="{%url 'task-remove' task.task_id %}" class="cancel">ПРЕМАХНИ</a>
+							
+							<a href="{%url 'task-update' task.task_id %}"><i>Промени</i></a>
+
+							<a href="{%url 'task-message' task.task_id %}"><i>Нова Бележка</i></a>
+
+							<a href="{% url 'task-messages' task.task_id %}"><i>Записи</i> </a> 
+						{%endif%}
+						
+						<div id="hero-options"></div>
+					</div>
+				</div>
+		    </li>
+		{% endfor %}
+	{% else %}
+		<p>🎉 Нямаш публикувани задачи! <a href="{%url 'task-create'%}">Създай</a></p>
+	{% endif %}
+	</ul>
+	<script>
+		let heroes = document.querySelectorAll('p.hero') /*getElementsByClassName("name");*/
+		heroes.forEach(hero => {
+			hero.addEventListener("click", function()
+			{	let container = document.getElementById(hero.attributes.heroname.value)
+				clearContainer(container);
+				heroBlockOptions(container,hero);
+			})
+		})
+
+		function archive_task(id){
+			action = confirm("Да архивирами ли?")
+			urltarget = window.location.protocol + '//'
+			urltarget += window.location.hostname + ':'
+			urltarget += window.location.port + '/task/'
+			if(action){
+				urltarget +=  'archive/'	
+			}
+			else{
+				urltarget += 'remove/'
+			}
+			urltarget += id + '/'
+			document.location = urltarget
+
+		}
+
+		function heroBlockOptions(container,hero){
+			let heroname = hero.attributes.heroname.value;
+			let block = document.createElement('a');
+			let option_name = document.createTextNode('БЛОКИРАЙ');
+			block.href = '/ban/' + heroname ;
+			block.appendChild(option_name);
+			container.append(block);
+			console.log(heroname);
+		}
+		function clearContainer(container){
+			while(container.firstChild){
+				caontainer.removeChilld(container.firstChild)
+			}
+		}
+		let messages = document.querySelectorAll('p.new-message')
+		let msg_container = document.getElementById('create-message')
+		messages.forEach(message => {
+			message.addEventListener("click", function()
+			{
+				clearContainer(msg_container);
+				load_message()
+			})
+		})
+		function load_message() {
+			msg_container.innerHTML='<object type="text/html" data="/message/templates/task/task_message.html" ></object>';
+	   }
+
+		function showActions(task_actions) {
+			console.log('Printing task data',task_actions)
+		
+			task_actions.classList.toggle("show");
+			
+		}
+		window.onclick = function(event) {
+			if (!event.target.matches('.optbtn') ) {
+				if (!event.target.matches('.dropbtn') ){
+					var dropdowns = document.getElementsByClassName("dropdown-content");
+					var i;
+					for (i = 0; i < dropdowns.length; i++) {
+						var openDropdown = dropdowns[i];
+						if (openDropdown.classList.contains('show')) {
+							openDropdown.classList.remove('show');
+						}
+					}
+				}
+				
+			}
+		}  
+	</script>
+{%endblock taskscontent%}
+
+<!--
+{{ task.category.parent.name }} {{ task.category }} - 
+	{% if task.waiting_list < 2 and task.heroes == 0 %}	
+							<a href="{%url 'task-update' task.task_id %}"><i class="bi bi-pencil-square"></i></a>
+						{%endif%}
+
+-->

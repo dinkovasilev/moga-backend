@@ -1,0 +1,23 @@
+{%extends 'items/myitems_list.html'%}
+
+{%block itemscontent%}
+	<div>
+	<h3>Давам</h3>
+	{% if items %}
+	<ul class="tasks">
+		{% for item in items %}
+			<li><a href="{% url 'item' item.item_id %}" class="task-list">{{ item.category }}:{{ item.name }}</a> 
+				 <div  class="task-controls">
+					<a href="{%url 'item-cancel' item.item_id %}" class="cancel">ОТКАЖИ</a>
+					<a href="{%url 'task-update' item.item_id  %}"><i class="bi bi-pencil-square"></i></a>
+					<a href="{%url 'item-message' item.item_id  %}"><i class="bi bi-plus">Съобщение</i></a>
+		         </div>
+		    </li>
+		{% endfor %}
+	{% else %}
+		<p> Нямаш съдържание в тази КУТИЯ! </p>
+	{% endif %}
+	</ul>
+	</div>
+
+{%endblock itemscontent%}

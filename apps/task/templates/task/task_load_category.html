@@ -1,0 +1,53 @@
+{%extends 'player/templates/tasks/mytasks_list.html'%}
+
+{%block taskscontent%}
+<style>
+	label{
+		font-size: large;
+		font-weight: bold;
+	}
+	option{
+		font-size: 20px;
+	}
+</style>
+<div class="center">
+	<form method="post" novalidate class="task-data">
+	 	{%csrf_token %}
+	 	
+	 	<h2 class='text-center'>Избери област за новата задача</h2>
+		{%if categories%}
+			<label for="category"></label>
+		 	<select name="category" id="main-categories">
+				{% for cat in categories%}
+					<option 
+						value="{{cat.name}}" 
+						class="category-name">{{cat.name}}
+					</option>
+				{%endfor%}
+		 	</select>
+	 	{%endif%}
+
+		{%if form%}
+		{{form.as_p}}
+		{%endif%}	
+	</form>
+    
+</div>
+{{categories|escapejs|json_script:'category_list'}}
+<script>
+    const categories = JSON.parse(document.getElementById('category_list'));
+
+	console.log(categories)
+
+	function update_field(value, id){
+		console.log('Стойност: ' + value + ' Елемент: ' + id)
+		
+		var urltarget = window.location.protocol + '//'
+		urltarget += window.location.hostname + ':'
+		urltarget += window.location.port + '/task/save/' + value
+		urltarget += '/'
+		window.location.href = urltarget
+	}
+</script>
+
+{%endblock taskscontent%}

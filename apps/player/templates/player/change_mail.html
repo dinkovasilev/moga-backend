@@ -1,0 +1,24 @@
+{% extends 'player/profile.html' %} 
+
+{% block subcontent %}
+
+
+<div class="center">
+	<form method="POST" enctype="multipart/form-data" class="card">
+		{% csrf_token %} 
+		
+    
+	    <h2 class="text-center">{{ user.username | title }}</h2>
+	    <p class="text-center"><a href="mailto:{{user.email}}">{{user.email}}</a></p>
+		<hr>
+		
+		<label for="email">Email Address:</label>
+		<input type="email" id="email" name="email" value="{{user.email}}" />
+			
+		
+	    <button type="submit" class="btn btn-primary full-width">Update Profile</button>
+	
+	</form>
+</div>
+
+{% endblock subcontent %}

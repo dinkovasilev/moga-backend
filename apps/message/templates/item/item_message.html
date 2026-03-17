@@ -1,0 +1,17 @@
+{%extends 'base.html'%}
+
+  {%block content%}
+    <br/>
+    <h1>Ново съобщение</h1>
+    <h4>Относно задача: {{item.name}}; {{item.description}} Създадена на:{{item.created_on}}; </h4>
+    <form action="{% url 'item-save-message'%}" method="POST" id="Message">
+    {% csrf_token %} 
+    <fieldset>
+        {% if item %}
+          <input type="hidden" id="itemid" name="item_id" value={{item.item_id}}>
+          <textarea name="text" rows="10" cols="30" id="text"></textarea>
+        {% endif %}
+      <input type="submit" value="Изпрати">
+    </fieldset>
+    </form>
+  {%endblock content%}

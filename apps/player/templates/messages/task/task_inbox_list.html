@@ -1,0 +1,90 @@
+{%extends 'messages/subcontent.html'%}
+
+{%block targetcontent%}
+<style>
+
+.inbox{
+	display: inline-block; 
+	width: 100%;
+}
+
+.message-target{
+	display: inline-block; 
+	width: 100%;	
+      border: 1px solid #000;
+      margin: 5px 0;
+
+      box-sizing: border-box;
+      background-color: #EDDF96;
+      color: black;
+      display: block;
+      padding: 10px;
+      text-decoration: none;
+      border-radius: 10px;
+}
+.message-target :hover{
+	background-color: #555;
+    color: white;
+}
+.tasks{
+    float: left;
+	width: 25%;
+	padding: 2px;
+ }
+
+.task-messages{
+  float: right;
+  width: 70%;
+  border: solid 1px;
+}
+
+  .target-link {
+  
+    color: #A84190;
+    padding: 8px 8px;
+    text-decoration: none;
+    width: 100%;
+    height:100%;
+  }
+  
+  /* Change the link color on hover */
+  .target-link:hover {
+    background-color: #555;
+    color: white;
+  }
+
+</style>
+
+<div class="inbox">
+	<div class="tasks">
+		{% if tasks %}
+
+			{% for task in tasks %}
+
+				<div class="message-target">
+				<a href="{% url 'task-messages' task.task_id %}">
+					<div class="target-link" >{{ task.name }}</div>
+				</a> 
+				{% if task.unread > 0 %}
+					<p>Непрочетени: {{task.unread}} </p>
+				{%endif%}
+				</div>
+
+			{% endfor %}
+		{% else %}
+			<p> Нямаш задачи със съобщения!
+
+		{% endif %}
+			
+	</div>
+
+	<div class="task-messages">
+		
+		{%block messages%}
+		
+		{%endblock messages%}
+	</div>
+
+</div>
+{% endblock targetcontent %}
+

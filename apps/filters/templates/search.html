@@ -1,0 +1,31 @@
+{%extends 'base.html'%}
+
+{%block content%}
+<br>
+<div>
+    <h3>Заявка за търсене: {{query}}</h3>
+    {% if found %}
+    <h3>Намерени думи: {{found}}</h3>
+    {% endif %}
+    <h3>Резултати</h3>
+    <div class="container">
+		{% if tasks %}
+			<ul class="tasks">
+				{% for task in tasks %}
+					<li>
+						<a href="{% url 'task-take-or-wait' task.task_id %}" 
+						class="task-list">
+                        {{task.status}} 
+						{{task.task_type}}: {{ task.category }} - {{ task.name }} 
+						{{task.description}}, Участници: {{task.workers_count}}
+						</a>
+					</li>
+				{% endfor %}
+		{% else %}
+			<p>Не са намерени записи!</p>
+			</ul>
+		{% endif %}
+		
+	</div>
+</div>
+{%endblock content%}

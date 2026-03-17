@@ -1,0 +1,40 @@
+{%extends 'content/content.html'%}
+
+{%block subcontent%}
+	<div>
+		<br>
+		
+		<div>
+			
+			{% if filter %}
+				<a href="{% url 'item-filter' %}" class="logo">ПРОМЕНИ ФИЛТЪР</a> 
+				{% for field in filter %}
+					{% if field.data %}
+						<p>{{field.label}}:{{field.data}};</p>
+					{% endif %}
+				{% endfor %}
+			
+			{%else%}
+				<a href="{% url 'item-filter' %}" class="logo">ФИЛТЪР</a> 
+			{% endif %}
+		</div>
+
+		<h3>Публикувани желания</h3>
+		
+		{% if items %}
+			<ul class="tasks">
+				{% for item in items %}
+					<li>
+						<a href="{% url 'item-take' item.item_id %}" 
+						class="task-list">{{ item.category }}:{{ item.name }}</a> 
+					</li>
+				{% endfor %}
+		{% else %}
+			<p> Няма други публикувани предмети и нужди! 
+				<a href="{%url 'item-create'%}">Създай</a>
+			</p>
+			</ul>
+		{% endif %}
+		
+	</div>
+{%endblock subcontent%}

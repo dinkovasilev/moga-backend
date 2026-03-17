@@ -1,0 +1,16 @@
+{%extends 'base.html'%}
+
+{%block content%}
+<div class="center">
+	<form method="post" class="card">
+		{% csrf_token %}
+		<h2>Изтриване на задачата</h2>
+		<p>Да се изтрие ли "{{item}}"?</p>
+		<p class="form-buttons">
+			<input type="submit" class="btn btn-primary" value="Изтрий">
+			<a href="{% url 'ownitems'%}" class="btn btn-outline">Отказ</a>
+		</p>
+	</form>
+</div>
+
+{%endblock content%}

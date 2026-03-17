@@ -1,0 +1,147 @@
+{%extends 'base.html'%}
+
+{%block content%}
+
+
+<style>
+
+
+  #search-button {
+    all: unset;
+    cursor: pointer;
+    width: 20px;
+    height: 20px;
+    padding: 20%;
+    font: 12px sans-serif;
+    font-weight: bold;
+    color: white;
+    }
+
+
+
+
+    .task-menu-button {
+      text-transform: uppercase;	
+      border: 1px solid #000;
+      margin: 7px 0;
+      width: 100%;
+      box-sizing: border-box;
+      background-color: #C1D2CE;
+      color: black;
+      display: block;
+      padding: 12px;
+      text-decoration: none;
+      border-radius: 10px;
+      }
+  .subnav {
+    padding-top:50px;
+    position: float;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    width: 80%;
+    margin: 0 auto;
+    }
+    
+    
+    .task-menu-button:hover {
+    background-color: #DABC27;
+    color:white;
+    font-size:16px;
+    font-weight: bold;
+    text-decoration: none;
+    }
+
+  ul {
+    list-style-type: none;
+    margin: 0;
+    padding: 0;
+    width: 200px;
+
+  }
+
+  li a {
+    color: #A84190;
+    padding: 8px 16px;
+    text-decoration: none;
+    width:100%;
+  }
+  
+  /* Change the link color on hover */
+  li a:hover {
+    background-color: #555;
+    color: white;
+  }
+
+  .menu{
+    position: fixed;
+		display: flex;
+		flex-direction: column;
+		overflow-y: auto;
+    border-top-right-radius: 80px 80px;
+    top: 50;
+    left: 0;
+    height: 100%;
+    width: 15%;
+    background-color: #502E2B;
+  }
+
+  .menu-title{
+    color: #fdfcda;
+    background-color: grey;
+    height: 50px;
+    width: 100%;
+    padding-left:5px;
+  }
+
+  .main-content{
+    padding-top: 70px;
+    margin-left: 16%;
+  }
+    a.content-list{
+        font-size: 20px;
+        font-weight: bold;
+        color:rgb(12, 180, 136)
+    }
+.profile-name{
+      border: 1px solid #000;
+      margin: 7px 0;
+      width: 100%;
+      box-sizing: border-box;
+      background-color: #CEE631;
+      color: black;
+      display: block;
+      padding: 12px;
+      border-radius: 10px;
+}
+    
+</style>
+
+{%block sidemenu%}
+<div class="menu">
+  <h2 class="menu-title">Профил</h2>
+ 
+  <nav class="subnav">
+    <h3 class="profile-name">{{request.user | title}}</h3>
+    <a href="{%url 'change-mail'%}" class="task-menu-button">Промяна на пощенски адрес: </a>
+    <a href="{%url 'banlist'%}" class="task-menu-button">Списък с блокирани: </a>
+    <form action="{% url 'logout' %}" method="post">
+      {% csrf_token %}
+      <button type="submit" class="btn btn-outline">Излизане</button>
+    </form>
+  </nav>
+  
+</div>
+{%endblock sidemenu%}
+  <div class="main-content">   
+
+
+    {%block subcontent%}
+        <p>Операции в профила:</p>
+        <p>За момента достъпни: смяна на адрес; разблокиране на потребител от списъка с блокирани</p>
+    {%endblock subcontent%}
+
+    <div class='option-content'>
+    </div>
+</div>
+{%endblock content%}

@@ -1,0 +1,21 @@
+{%extends 'player/templates/tasks/mytasks_list.html'%}
+
+{%block taskscontent%}
+
+    <br/>
+    <h2>Относно</h2>
+    {% if task %}
+    <h4>{{task.category}}: {{task.name}}; Създадена на:{{task.created_on}}; </h4>
+    <form method="POST" id="task-message" enctype="multipart/form-data">
+        {%csrf_token %}
+        <input type="hidden" id="taskid" name="task_id" value={{task.task_id}}>
+          
+        {{form.as_p}}
+        <div class="form-buttons">
+          <input type="submit" value="Изпрати" class="btn btn-primary"/>
+          <a href="{% url 'tasks-inbox'%}"  class="btn btn-outline">Откажи</a>
+        </div>
+    </form>
+    {% endif %}
+
+{%endblock taskscontent%}

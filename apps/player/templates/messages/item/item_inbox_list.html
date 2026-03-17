@@ -1,0 +1,62 @@
+{%extends 'content/post_content.html'%}
+
+{%block targetcontent%}
+<style>
+
+.inbox{
+	display: inline-block; 
+	width: 100%;
+}
+.tasks{
+    float: left;
+	width: 50%;
+ }
+
+.task-messages{
+  float: right;
+  width: 50%;
+  border: solid 1px;
+}
+
+</style>
+
+<div class="inbox">
+	<div class="tasks">
+		<h3>Желания с кореспонденция</h3>
+		{% if items %}
+			<ul>
+				{% for item in items %}
+					<li>
+						<div>
+						<a 
+							href="{% url 'item-messages' item.item_id %}" 
+							>
+							{{ item.category }} - {{ item.name }}
+						</a> 
+						{% if unread %}
+							{% for iid, count in unread.items %}
+								{%if iid == item.item_id%}
+									<p>Непрочетени: {{count}} </p>
+								{%endif%}
+							{%endfor%}
+						{%endif%}
+					</div>
+					</li>
+				{% endfor %}
+		{% else %}
+			<p> Няма желания със съобщения!
+			</ul> 
+		{% endif %}
+			
+	</div>
+
+	<div class="task-messages">
+		
+		{%block messages%}
+		
+		{%endblock messages%}
+	</div>
+
+</div>
+{%endblock targetcontent%}
+

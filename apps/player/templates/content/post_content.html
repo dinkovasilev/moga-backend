@@ -1,0 +1,56 @@
+{%extends 'messages/subcontent.html'%}
+
+{%block targetcontent%}
+
+	<div class="container">
+		{% if tasks %}
+		<table>
+			<colgroup>
+				<col span="5" style="background-color:rgb(232, 246, 175)">
+				<col style="background-color:lightgreen">
+			</colgroup>
+			<tr>
+				<th>Статус</th>
+				<th>Тип</th>
+				<th>Област</th>
+				<th>Раздел</th>
+				<th>Заглавие</th>
+				<th>Участващи</th>
+				<th>Съобщения</th>
+				<th>Непрочетени</th>
+			</tr>
+		
+				{% for task in tasks %}
+					<tr>
+						<td>{{ task.status }}</td>
+						<td>{{ task.task_type }}</td>
+						<td>{{ task.category.parent }}</td>
+						<td>{{ task.category }}</td>
+						<td>
+							<a href="{% url 'task-messages' task.task_id %}">{{ task.name }}</a>
+						</td>
+						<td>{{ task.people }}</td>
+						<td>{{task.msg_count}}</td>
+						
+						{% if task.unread > 0 %}
+							<td 
+							style="background-color:yellow">
+								<a id='unread' href="{% url 'task-messages' task.task_id %}">
+									<div style="height:100%;width:100%">
+										{{task.unread}}
+									</div>
+								</a>
+							</td>
+						{%else%}
+							<td>0</td>
+						{%endif%}
+						
+					</tr>
+				{% endfor %}
+		</table>
+		{% else %}
+			<p> Няма публикации!</p>
+		{% endif %}
+		
+	</div>
+{%endblock targetcontent%}

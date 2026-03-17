@@ -1,0 +1,38 @@
+{%extends 'content/content.html'%}
+
+{%block subcontent%}
+<br>
+<div class="center">
+	<form method="post" novalidate class="task-filter-data">
+	 	{%csrf_token %}
+	 	
+	 	<h2 class='text-center'>
+		{% if task %} Промени {%else %} Създай {%endif%} филтър</h2>
+		{% for field in form %}
+			<b> {{ field.label_tag }} {{ field }} </b> 
+			{% if field.errors %}
+				<small class="error">{{ field.errors|striptags  }}</small> 
+			{% endif %}
+		{% endfor %}
+		
+		<div class="form-buttons">
+			<input type="submit" value="Запиши" class="btn btn-primary"/>
+			<a href="{%url 'alltasks'%}" class="btn btn-outline">Откажи</a>
+		</div>
+	</form>
+	<script>
+		function update_field(value, id){
+			let current = document.getElementById(id);
+			if(current.value != null && current.value != ''){
+				current.value = current.value + '+' + value
+			}
+			else {
+				current.value = value 
+			}
+			console.log(id + ':' + current.value)
+		}
+	</script>
+</div>
+
+{%endblock subcontent%}
+

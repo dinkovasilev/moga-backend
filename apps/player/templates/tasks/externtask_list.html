@@ -1,0 +1,67 @@
+{%extends 'tasks/mytasks_list.html'%}
+
+{%block taskscontent%}
+	<h3>Участия и дискусии</h3>
+	{% if tasks %}
+	<ul class='tasks'>
+		{% for task in tasks %}
+			<li>
+				<div>
+					<a href="{% url 'task' task.task_id %}">{{ task.category.parent.name }}: {{ task.category.name }}:{{ task.name }}</a> 
+				</div>
+				
+				<div class="dropdown">
+
+					<i class={{task.status}}>{{task.status}}</i>
+					<button 
+                                    id="actions" 
+                                    class="optbtn" 
+									title="Промени данни"
+                                    onclick="showActions({{task.task_id}})">.....
+                    </button>
+
+					<div class="dropdown-content" id="{{task.task_id}}">
+						
+						{% if task.task_type != 'ДИСКУСИЯ' %}
+							<a href="{%url 'task-finish' task.task_id %}" ><i>ЗАВЪРШИ</i></a>
+						{% endif %}
+						
+						<a href="{%url 'task-cancel' task.task_id %}" ><i>ОТПИШИ СЕ</i></a>
+
+						<a href="{%url 'task-message' task.task_id %}"><i>Съобщение</i></a>
+
+						<a href="{% url 'task-messages' task.task_id %}"><i>ПОЩА</i> </a> 
+					</div>
+
+				</div>
+				
+		    </li>
+		{% endfor %}
+	{% else %}
+		<p> Нямаш приети задачи! </p>
+	{% endif %}
+	</ul>
+	<script>
+		function showActions(task_actions) {
+			console.log('Printing task data',task_actions)
+		
+			task_actions.classList.toggle("show");
+			
+		}
+		window.onclick = function(event) {
+			if (!event.target.matches('.optbtn') ) {
+				if (!event.target.matches('.dropbtn') ){
+					var dropdowns = document.getElementsByClassName("dropdown-content");
+					var i;
+					for (i = 0; i < dropdowns.length; i++) {
+						var openDropdown = dropdowns[i];
+						if (openDropdown.classList.contains('show')) {
+							openDropdown.classList.remove('show');
+						}
+					}
+				}
+			}
+		} 
+	</script>
+
+{%endblock taskscontent%}

@@ -1,0 +1,26 @@
+{%extends 'player/profile.html'%}
+
+{%block subcontent%}
+	<br>
+	<div>
+		<h2>Списък с блокирани</h2>
+		{% if bans %}
+		<h3>
+			<ul class="tasks">
+				{% for ban in bans %}
+					<li>
+						{{ forloop.counter }}. 
+						{{ban.username}}
+						<a href="{%url 'unban' ban.username %}" class="content-list">РАЗБЛОКИРАЙ: </a>
+					</li>
+				{% endfor %}
+				
+		{% else %}
+			<p> Няма! 
+			</p>
+			</ul>
+		</h3>
+		{% endif %}
+		
+	</div>
+{%endblock subcontent%}

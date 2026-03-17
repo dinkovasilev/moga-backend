@@ -1,0 +1,25 @@
+{%extends 'tasks/mytasks_list.html'%}
+
+{%block taskscontent %}
+			
+			<h3>ЧАТ</h3>
+
+			{% if tasks %}
+			<ul class="tasks">
+				{% for task in tasks %}
+					<li>
+						<a 
+							href="{% url 'lobby-name' 'task' task.task_id %}" 
+							class="task-list">
+							{{ task.name }} <br/>
+							{{ task.description }} 
+						</a> 
+						<i class={{task.status}}>{{task.status}}</i>
+					</li>
+
+				{% endfor %}
+			{% else %}
+				<h2> Няма съдържание! <a href="{%url 'task-create'%}">Създай</a></h2>
+			{% endif %}
+			</ul>
+		{%endblock taskscontent%}

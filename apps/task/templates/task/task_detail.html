@@ -1,0 +1,160 @@
+{%extends 'tasks/mytasks_list.html'%}
+
+{%block taskscontent%}
+<style>
+	.task-info {
+		float: left; 
+		width: 25%; 
+		display: inline-block; 
+		padding-right: 10px;
+	}
+	.info-text {
+		width: 100%; 
+		border-radius: 10px;
+		border: 2px solid red; /* Добавена рамка */
+		padding: 10px; /* Добавен padding */
+		background-color: #DDCB6D;
+	}
+
+	.task-post{
+		
+		float: left; 
+		width: 75%; 
+		display: inline-block; 
+		padding-left: 20px;
+	}
+	.messages{
+		width: 100%;
+		background-color: #8FF3D3; 
+		border-radius: 10px;
+	}
+	.message-text{
+	padding-left: 30px;
+	word-wrap: break-word;
+	}
+	.new-message{
+		display: inline-block; 
+		background-color: #3A8A67;
+		padding: 3px;
+		align-items: right;
+		width: 20%;
+		border-radius: 4px;
+	}
+	.new-message :hover{
+		background-color: red;
+	}
+	.create-message {
+		color: white;
+		width:100%;
+		height:100%;
+		padding-left:5px;
+	}
+	
+	  .voteup{
+		padding: 0.5rem;
+		background-color: green;
+		text-decoration: none;
+		color: var(--color-white);
+		font-weight: bold;
+		text-transform: uppercase;
+	  }
+	  .voteup:hover {
+		text-decoration: none;
+	  }
+	  .votedown{
+		padding: 0.5rem;
+		background-color: red;
+		text-decoration: none;
+		color: var(--color-white);
+		font-weight: bold;
+		text-transform: uppercase;
+	  }
+	  .votedown:hover {
+		text-decoration: none;
+	  }
+</style>
+	
+ 	<div class="task-info" >
+		<header>
+			<h3>ДЕТАЙЛИ</H3>
+		</header>
+		<div class="info-text">
+		  <p>Заглавие: <h4>{{task.name}}</h4></p>
+			<p>Тип на задачата: <h4> {{task.task_type}} </h4></p>
+			<p>Статус: <h4>{{task.status}} </h4></p>
+			<P>Раздел:<h4> {{ task.category.parent }} </h4></P>
+			<P>Категория:<h4> {{ task.category }} </h4></P>
+			<p>Описание: <h4>{{task.description}} </h4></p>
+			<p>Локация: <h4>{{task.location}} </h4></p>
+			
+			{% if task.listeners_count > 0%}
+				<p>Слушатели:<h4> {{task.listeners_count}} </h4></p>
+			{% endif %}
+			{% if task.workers_count > 0%}
+				<p>Участници:<h4> {{task.workers_count}} </h4></p>
+			{% endif %}
+			<p>Запълване на екип:<h4> {{task.load}}% </h4></p>
+		</div>
+	</div>
+	
+	<div class="task-post" >
+		{%if task%}
+		<h2>Съобщения</h2>
+		<div class="messages">
+			{% if taskmessages %}
+				
+				{% for msg in taskmessages %}
+
+					<p style="padding: 10px; font-weight:bold;">
+							{{forloop.counter}}. На: {{msg.message_time}} От {{msg.player.username}}  
+							
+							<div class="message-text">{{msg.message_text|urlize|linebreaks}}</div>
+							{% if task.task_type == 'ЛЕКЦИЯ' or task.task_type == 'ДИСКУСИЯ'%}
+								<a href="{% url 'message-upvote' msg.message_id task.task_id%}" class="voteup">ДА</a> 
+								Рейтинг: {{msg.rating}}	
+								<a href="{% url 'message-downvote' msg.message_id task.task_id%}"class="votedown">НЕ</a>
+							{% endif %}
+							{% if msg.image %}
+								<p>Прикачен файл: <a href="{{ msg.image.url }}">снимка</a></p>
+								<img src="{{ msg.image.url }}">
+							{% endif %}
+					</p>
+				{% endfor %}
+				<div class="new-message" >
+					
+					<a href="{%url 'task-message' task.task_id %}">
+						<div class="create-message">
+							{%if task.task_type == 'БЕЛЕЖНИК'%}
+								Нова бележка
+							{%else%}
+								Ново Съобщение
+							{%endif%}
+						</div>
+					</a>
+				
+				</div>
+			{% else %}
+				<p> Няма съобщения по тази задача! 
+				
+				{%if task.task_type != 'ЛЕКЦИЯ' %}
+					<div class="new-message" >
+						
+						<a href="{%url 'task-message' task.task_id %}">
+							<div class="create-message">
+								{%if task.task_type == 'БЕЛЕЖНИК'%}
+									Нова бележка
+								{%else%}
+									Ново Съобщение
+								{%endif%}
+							
+							</div>
+						</a>
+					
+					</div>
+				{% endif %}
+				
+			{% endif %}
+		</div>
+		{%endif%}
+	</div>
+{%endblock taskscontent%}
