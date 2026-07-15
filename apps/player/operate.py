@@ -1,5 +1,9 @@
+import logging
+
 from enum import Enum
 from .models import *
+
+logger = logging.getLogger(__name__)
 
 class PlayerFields:
     FIELDS = [
@@ -33,7 +37,8 @@ class Choice:
             try:
                 player = Player.objects.get(player_id=player_id)
                 return {player.player_id:player.player_id}
-            except: pass
+            except Player.DoesNotExist:
+                logger.warning("Player %s not found", player_id)
         else:
             players = Player.objects.all()
             if players:

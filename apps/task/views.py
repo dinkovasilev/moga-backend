@@ -1,3 +1,5 @@
+import logging
+
 from django.shortcuts import render
 from django.views.generic.detail import DetailView
 from django.views.generic.edit import UpdateView, DeleteView
@@ -18,10 +20,12 @@ from .forms import TaskCreateForm, LoadTCategory
 from ..catalogs.models import TCategory
 from ..catalogs.serializer import MobileTCSerializer
 
+logger = logging.getLogger(__name__)
+
 
 def home(request):
     return render(request,'home.html')
-  
+
 class TaskCreate(LoginRequiredMixin,FormView):
     template_name = 'task/task_create.html'
     form_class = TaskCreateForm
@@ -29,26 +33,27 @@ class TaskCreate(LoginRequiredMixin,FormView):
     success_url = reverse_lazy('owntasks')
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        categories = TCategory.objects.filter(parent=None) #all().exclude(parent_isnull=False)
+        categories = TCategory.objects.filter(parent=None)
         serializer = MobileTCSerializer(categories,many=True)
         context['categories'] = serializer.data
         return context
     def form_valid(self, form):
-        
-        fields = {field:form.cleaned_data[field] 
-                    for field in list(form.cleaned_data.keys()) 
+        fields = {field:form.cleaned_data[field]
+                    for field in list(form.cleaned_data.keys())
                     if form.cleaned_data[field] is not None}
         try:
             categoryID = self.request.POST['category']
             category = TCategory.objects.get(pk=categoryID)
             fields['category'] = category
-
-        except: pass
+        except TCategory.DoesNotExist:
+            logger.warning("Category %s not found", self.request.POST.get('category'))
         try:
             player_id = self.request.user.profile.player_id
             player = Player.objects.get(player_id=player_id)
             player.create_task(fields)
-        except: return render(self.request,'error.html')
+        except Exception:
+            logger.exception("Failed to create task for user %s", self.request.user)
+            return render(self.request,'error.html')
         return super(TaskCreate, self).form_valid(form)
 class TaskTakeOrWait(LoginRequiredMixin, DetailView):
     model = Task
@@ -67,7 +72,8 @@ class TaskDetail(LoginRequiredMixin, DetailView):
             task = Task.objects.get(task_id=self.kwargs.get('task_id'))
             context['task'] = task
             context['taskmessages'] = player.get_task_messages(task.task_id)
-        except:pass
+        except Exception:
+            logger.exception("Failed to load task detail %s", self.kwargs.get('task_id'))
         return context
 class TaskActions(LoginRequiredMixin, DetailView):
     model = Task
@@ -81,7 +87,8 @@ class TaskActions(LoginRequiredMixin, DetailView):
             task = Task.objects.get(task_id=self.kwargs.get('task_id'))
             context['task'] = task
             context['actions'] = task.active_options(player.profile)
-        except:pass
+        except Exception:
+            logger.exception("Failed to load task actions %s", self.kwargs.get('task_id'))
         return context
 class TaskUpdate(LoginRequiredMixin, UpdateView):
     model = Task
@@ -91,24 +98,10 @@ class TaskUpdate(LoginRequiredMixin, UpdateView):
     def form_valid(self, form):
         messages.success(self.request, "Задачата е актуализирана.")
         return super(TaskUpdate,self).form_valid(form)
-      
+
     def get_queryset(self):
         base_qs = super(TaskUpdate, self).get_queryset()
         return base_qs.filter(owner=self.request.user)
-"""
-# class TaskDelete(LoginRequiredMixin, DeleteView):
-#     model = Task
-#     context_object_name = 'task'
-#     success_url = reverse_lazy('mytasks-list')
-    
-#     def form_valid(self, form):
-#         messages.success(self.request, "Премахната")
-#         return super(TaskDelete,self).form_valid(form)
-      
-#     def get_queryset(self):
-#         base_qs = super(TaskDelete, self).get_queryset()
-#         return base_qs.filter(owner=self.request.user)
-"""    
 
 # extract player object from database and return it to request function
 def get_player(view_func):
@@ -132,7 +125,9 @@ def take_task(request,task_id):
         else:
             messages.error(request, "Не може да се изпълни")
         return redirect('externtasks')
-    except: redirect('alltasks')
+    except Exception:
+        logger.exception("Failed to take task %s", task_id)
+        return redirect('alltasks')
 
 @login_required
 @get_player
@@ -142,7 +137,8 @@ def cancel_task(request,task_id):
             messages.success(request, "Мисията е премахната от списъка")
         else:
             messages.error(request, "Не може да се изпълни")
-    except: pass
+    except Exception:
+        logger.exception("Failed to cancel task %s", task_id)
     return redirect('mytasks-list')
 @login_required
 @get_player
@@ -152,7 +148,9 @@ def abort_task(request,task_id):
             messages.success(request, "Премахната! Ако има участници ще ги уведомя!")
         else:
             messages.error(request, "Не може да се изпълни")
-    except: messages.error(request, "Грешка")
+    except Exception:
+        logger.exception("Failed to abort task %s", task_id)
+        messages.error(request, "Грешка")
     return redirect('mytasks-list')
 
 @login_required
@@ -164,7 +162,9 @@ def remove_task(request,task_id):
         else:
             messages.error(request, "Не може да се изпълни")
         return redirect('mytasks-list')
-    except: return redirect('alltasks')
+    except Exception:
+        logger.exception("Failed to remove task %s", task_id)
+        return redirect('alltasks')
 
 @login_required
 @get_player
@@ -173,7 +173,8 @@ def add_listener(request,task_id):
         msg = request.player.add_listener(task_id)
         messages.success(request, msg)
         return redirect('waitingtasks')
-    except: 
+    except Exception:
+        logger.exception("Failed to add listener for task %s", task_id)
         return redirect('mytasks-list')
 
 @login_required
@@ -184,17 +185,21 @@ def remove_listener(request,task_id):
                 messages.success(request, "Лекцията е премахната от списъка")
             else:
                 messages.error(request, "Не може да се изпълни")
-        except: pass
+        except Exception:
+            logger.exception("Failed to remove listener for task %s", task_id)
         return redirect('mytasks-list')
 
 @login_required
+@get_player
 def archive_task(request,task_id):
     try:
         if request.player.archive_mission(task_id):
             messages.success(request, "Мисията е архивирана")
         else:
             messages.warning(request, "Премахната, но не е архивирана")
-    except: messages.error(request, "Грешка в операцията")
+    except Exception:
+        logger.exception("Failed to archive task %s", task_id)
+        messages.error(request, "Грешка в операцията")
     return redirect('mytasks-list')
 
 @login_required
@@ -205,11 +210,12 @@ def finish_task(request,task_id):
                 messages.success(request, "Мисията е премахната от списъка")
             else:
                 messages.success(request, "Не може да се изпълни")
-        except: messages.error(request, "Грешка в операцията")
+        except Exception:
+            logger.exception("Failed to finish task %s", task_id)
+            messages.error(request, "Грешка в операцията")
         return redirect('externtasks')
-         
+
 @login_required
 @get_player
 def action(request,task_id):
     pass
-

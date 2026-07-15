@@ -1,3 +1,5 @@
+import logging
+
 from django.http import StreamingHttpResponse
 from django.shortcuts import render
 import asyncio
@@ -7,6 +9,8 @@ from asgiref.sync import async_to_sync, sync_to_async
 from ..task.models import Task
 from ..notifications.models import NType, Notifications, ChatRoom, ChatMessage
 from django.contrib.auth.decorators import login_required
+
+logger = logging.getLogger(__name__)
 
 async def sse_stream(request):
     """
@@ -38,7 +42,6 @@ def lobby(request, target_type, lobby_name):
         target = None
         chatlog = None
         target_id = None
-        print(f'Чат заявка пратена от: {sender.username}')
         if target_type == 'task':
             target = Task.objects.get(task_id=lobby_name)
             target_id = target.task_id
@@ -79,8 +82,8 @@ def lobby(request, target_type, lobby_name):
         context['lobby_name'] = lobby_name
         context['target'] = target
         if chatlog: context['chatlog'] = longtext
-    except:
-        print('срив на канала, съобщението не е пратено')
+    except Exception:
+        logger.exception("Failed to load chat lobby %s/%s", target_type, lobby_name)
 
     return render(request,'notifications/lobby.html',context)
 

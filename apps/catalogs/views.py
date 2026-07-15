@@ -1,3 +1,5 @@
+import logging
+
 from django.shortcuts import render
 from rest_framework import status
 from rest_framework.views import APIView
@@ -6,6 +8,8 @@ from django.views.generic.list import ListView
 from .models import *
 from .serializer import *
 from .operate import *
+
+logger = logging.getLogger(__name__)
 
 # Create your views here.
 class TaskCategoriesList(ListView):
@@ -36,7 +40,8 @@ class TaskSubCategoryCreate(APIView):
                 subcat.parent = parent
                 subcat.save()
                 return Response(status=status.HTTP_201_CREATED)
-            except:
+            except TCategory.DoesNotExist:
+                logger.warning("Parent category %s not found", parent_name)
                 return Response(status=status.HTTP_400_BAD_REQUEST)
         return Response(status=status.HTTP_226_IM_USED)
 

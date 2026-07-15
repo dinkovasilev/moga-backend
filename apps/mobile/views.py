@@ -1,3 +1,5 @@
+import logging
+
 from django.contrib.auth.models import User
 from rest_framework.views import APIView
 from django.views.generic.list import ListView
@@ -32,6 +34,8 @@ from ..item.operate import ItemType
 from ..task.serializer import MobileCreateTaskSerializer
 from ..player.models import Player
 
+logger = logging.getLogger(__name__)
+
 ########################## GET REQUESTS ####################################
 @login_required
 def mobile_alltasks(request):
@@ -51,11 +55,13 @@ def mobile_alltasks(request):
                 if bool(filter_data):
                     filter_form_object = TaskFilterCreateForm(data=model_to_dict(player_filter))
                     context['filter'] = filter_form_object
-            except: pass
+            except TaskFilter.DoesNotExist:
+                pass
             serializer = TaskSerializer(context['tasks'],many=True)
             context['tasks'] = serializer.data
-            return JsonResponse({'context':context}) #, 'filter':context['filter']
-        except: pass      
+            return JsonResponse({'context':context})
+        except Exception:
+            logger.exception("Failed to fetch all tasks for player")
         return JsonResponse({'error':'Error fetching all tasks list!'})
 
 @login_required
@@ -67,8 +73,9 @@ def mobile_mytasks(request):
             context['tasks'] = player.missionbox.all()
             serializer = TaskSerializer(context['tasks'],many=True)
             context['tasks'] = serializer.data
-            return JsonResponse({'context':context}) #, 'filter':context['filter']
-        except: pass      
+            return JsonResponse({'context':context})
+        except Exception:
+            logger.exception("Failed to fetch player's own tasks")
         return JsonResponse({'error':'Error fetching all tasks list!'})
 
 @login_required
@@ -78,7 +85,7 @@ def mobile_owntasks(request):
         context={}
         try:
             player = Player.objects.get(profile=request.user)
-            tasks = [task for task in player.missionbox.all().order_by('created_on') 
+            tasks = [task for task in player.missionbox.all().order_by('created_on')
                      if player.player_id == task.player_id]
             context['tasks'] = tasks
             context['heroes'] = {}
@@ -88,8 +95,9 @@ def mobile_owntasks(request):
                     context['heroes'][task.task_id] = heroes
             serializer = TaskSerializer(context['tasks'],many=True)
             context['tasks'] = serializer.data
-            return JsonResponse({'context':context}) #, 'filter':context['filter']
-        except: pass      
+            return JsonResponse({'context':context})
+        except Exception:
+            logger.exception("Failed to fetch player's created tasks")
         return JsonResponse({'error':'Error fetching all tasks list!'})
 
 @login_required
@@ -98,13 +106,14 @@ def mobile_subscribed_tasks(request):
         context={}
         try:
             player = Player.objects.get(profile=request.user)
-            missionbox = [task for task in player.missionbox.all() 
+            missionbox = [task for task in player.missionbox.all()
                           if player.profile in task.waiting_list.all()]
-            context['tasks'] = missionbox 
+            context['tasks'] = missionbox
             serializer = TaskSerializer(context['tasks'],many=True)
             context['tasks'] = serializer.data
-            return JsonResponse({'context':context}) #, 'filter':context['filter']
-        except: pass      
+            return JsonResponse({'context':context})
+        except Exception:
+            logger.exception("Failed to fetch player's subscribed tasks")
         return JsonResponse({'error':'Error fetching all tasks list!'})
 
 @login_required
@@ -113,29 +122,31 @@ def mobile_extern_tasks(request):
         context={}
         try:
             player = Player.objects.get(profile=request.user)
-            missionbox = [task for task in player.missionbox.all() 
+            missionbox = [task for task in player.missionbox.all()
                           if player.profile in task.workers.all()]
-            context['tasks'] = missionbox 
+            context['tasks'] = missionbox
             serializer = TaskSerializer(context['tasks'],many=True)
             context['tasks'] = serializer.data
-            return JsonResponse({'context':context}) #, 'filter':context['filter']
-        except: pass      
+            return JsonResponse({'context':context})
+        except Exception:
+            logger.exception("Failed to fetch player's external tasks")
         return JsonResponse({'error':'Error fetching all tasks list!'})
-          
+
 @login_required
 def mobile_get_task_categories(request):
     if request.method == 'GET':
         context={}
         try:
-            context['categories'] = TCategory.objects.filter(parent=None) #all().exclude(parent_isnull=False)
+            context['categories'] = TCategory.objects.filter(parent=None)
 
             serializer = MobileTCSerializer(context['categories'],many=True)
             context['categories'] = serializer.data
 
             return JsonResponse({'context':context})
-        except: pass
-        return JsonResponse({'error':'Error fetching task categories!'})        
-        
+        except Exception:
+            logger.exception("Failed to fetch task categories")
+        return JsonResponse({'error':'Error fetching task categories!'})
+
 @login_required
 def mobile_get_task_messages(request, task_id):
     if request.method == 'GET':
@@ -146,8 +157,9 @@ def mobile_get_task_messages(request, task_id):
             serializer = MobileMessageSerializer(context['messages'],many=True)
             context['messages'] = serializer.data
             return JsonResponse({'context':context})
-        except: pass
-        return JsonResponse({'error':'Error fetching task messages!'})    
+        except Task.DoesNotExist:
+            logger.warning("Task %s not found", task_id)
+        return JsonResponse({'error':'Error fetching task messages!'})
 
 ########################################## POST REQUESTS ################################################
 
@@ -184,9 +196,10 @@ def mobile_task_action(request):
             if success: return JsonResponse(response, status=status.HTTP_200_OK)
             response['message'] = 'Заявката не може да бъде изпълнена'
             return JsonResponse(response, status=status.HTTP_403_FORBIDDEN)
-        except: 
+        except Exception:
+            logger.exception("Failed to process task action")
             return JsonResponse({"message": "Error in data"}, status=status.HTTP_400_BAD_REQUEST)
-    
+
 @csrf_exempt
 @login_required
 def mobile_message_vote(request):
@@ -197,23 +210,22 @@ def mobile_message_vote(request):
             messageID = data['target_id']
             action = data['action']
             message = Message.objects.get(message_id=messageID)
-            print(messageID, action, message.message_id)
-            #user = User.objects.get(username=request.user)
             success = False
             match action:
                 case 'vote-up':
                     success = message.vote_up(request.user)
                 case 'vote-down':
                     success = message.vote_down(request.user)
-                    
+
             response['message'] = 'Вота е приет'
             response['rating'] = message.rating
             if success: return JsonResponse(response, status=status.HTTP_200_OK)
             response['message'] = 'Заявката не може да бъде изпълнена'
             return JsonResponse(response, status=status.HTTP_403_FORBIDDEN)
-        except: 
+        except Exception:
+            logger.exception("Failed to process message vote")
             return JsonResponse({"message": "Error in data"}, status=status.HTTP_400_BAD_REQUEST)
-    
+
 
 @csrf_exempt
 @login_required
@@ -223,14 +235,8 @@ def mobile_create_task(request):
         try:
             categoryID = data['category']
             category = TCategory.objects.get(pk=categoryID)
-            # valid_from = datetime.datetime.strptime(data['valid_from'],'%Y-%m-%d %H:%M')
-            # valid_to = datetime.datetime.strptime(data['valid_to'],'%Y-%m-%d %H:%M')
-            # print(valid_from, ' - ', valid_to)
-            # data['valid_from'] = valid_from
-            # data['valid_to'] = valid_to
             data['category'] = category
-            
-            
+
             if data['location'] == '': data['location'] = 'България'
             if data['description'] == '': data['description'] = 'няма'
             serializer = MobileCreateTaskSerializer(data=data)
@@ -238,7 +244,8 @@ def mobile_create_task(request):
                 player = Player.objects.get(profile=request.user)
                 player.create_task(data)
                 return JsonResponse({"message": "Task created successfully"}, status=status.HTTP_200_OK)
-        except: 
+        except Exception:
+            logger.exception("Failed to create task")
             return JsonResponse({"message": "Error in data"}, status=status.HTTP_400_BAD_REQUEST)
         return JsonResponse(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
@@ -248,18 +255,17 @@ def mobile_create_message(request):
     if request.method == 'POST':
         data = JSONParser().parse(request)
         response = {}
-        try: 
+        try:
             player_id = request.user.profile.player_id
-            target_id = data['target_id'] 
+            target_id = data['target_id']
             target_type = data['target_type']
             text = data['message']
-            #image = self.request.FILES.get('image')
             image = None
             player = Player.objects.get(player_id=player_id)
             match target_type:
-                case 'task': 
+                case 'task':
                     target = Task.objects.get(task_id=target_id)
-                case 'item': 
+                case 'item':
                     target = Item.objects.get(item_id=target_id)
 
             if target.personal:
@@ -272,6 +278,6 @@ def mobile_create_message(request):
             else:
                 response['message'] = 'Грешка при изпращане'
                 return JsonResponse(response, status=status.HTTP_403_FORBIDDEN)
-        except: pass
+        except Exception:
+            logger.exception("Failed to create message")
     return JsonResponse({'message':'error posting message'}, status=status.HTTP_400_BAD_REQUEST)
-

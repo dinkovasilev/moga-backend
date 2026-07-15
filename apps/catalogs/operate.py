@@ -1,5 +1,8 @@
+import logging
+
 from .models import *
 
+logger = logging.getLogger(__name__)
 
 
 class TaskCategoryChoice:
@@ -18,9 +21,11 @@ class TaskCategoryChoice:
     def subcat_dict(catname:str):
         try:
             category = TCategory.objects.get(name=catname)
-            return sorted({cat.name:cat.name 
+            return sorted({cat.name:cat.name
                            for cat in category.subcategories.all()})
-        except: return {'system':'default'}
+        except TCategory.DoesNotExist:
+            logger.warning("Category %s not found", catname)
+            return {'system':'default'}
         
 
 class ItemCategoryChoice:

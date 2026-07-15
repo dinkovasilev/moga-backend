@@ -1,4 +1,9 @@
+import logging
+
 from django.db import models
+
+logger = logging.getLogger(__name__)
+
 
 class TCategory(models.Model):
     name = models.CharField(max_length=256)
@@ -18,7 +23,9 @@ class TCategory(models.Model):
                 category = cls.objects.get(name=category)
             cls.objects.get_or_create(name=subcategory,parent=category)
             return True
-        except: return False
+        except cls.DoesNotExist:
+            logger.warning("Category %s not found while linking subcategory %s", category, subcategory)
+            return False
 
 
 

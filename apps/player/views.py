@@ -1,3 +1,5 @@
+import logging
+
 from django.contrib.auth.models import User
 from rest_framework.permissions import AllowAny
 from rest_framework.authtoken.models import Token
@@ -7,7 +9,7 @@ from django.views import View
 from django.views.generic.edit import FormView
 from django.views.generic.list import ListView
 from django.contrib.auth.views import LoginView
-from django.contrib.auth import login 
+from django.contrib.auth import login
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.views.decorators.csrf import csrf_protect, csrf_exempt
 from django.contrib import messages
@@ -38,6 +40,8 @@ from django.http import JsonResponse
 from django.middleware.csrf import get_token
 from django.contrib.auth.decorators import login_required
 
+logger = logging.getLogger(__name__)
+
 @ensure_csrf_cookie
 def get_csrf_token(request):
     csrf_token = get_token(request)
@@ -55,19 +59,15 @@ def get_auth_for_user(user):
 
 @csrf_exempt
 def mobile_login(request):
-        
+
     if request.method == 'POST':
         username = request.POST.get('username')
         password = request.POST.get('password')
         user = authenticate(request, username=username, password=password)
-        
+
         if user is not None:
             login(request, user)
-            
-            
             csrf_token = get_token(request)
-            # when using token
-            #user_data = get_auth_for_user(user)
             tokens = RefreshToken.for_user(user)
             user_data = {
                 'user': UserSerializer(user).data,
@@ -77,37 +77,23 @@ def mobile_login(request):
                     'refresh': str(tokens),
                 }
             }
-            """
-            tokens = RefreshToken.for_user(user)
-            user_data = {
-                'user': UserSerializer(user).data,
-            }
-            #return Response(user_data)       
-            """
-            return JsonResponse(user_data) 
+            return JsonResponse(user_data)
         else:
             return JsonResponse({'error': 'Invalid credentials'}, status=400)
-        
-        
-
 
 
 class MobileLoginView(APIView):
     def post(self, request, *args, **kwargs):
-        
-        username = request.data.get('username')#['username']['value']
-        password = request.data.get('password')#['password']['value']
 
-        print('Login request user:', username, 'password:',password)
+        username = request.data.get('username')
+        password = request.data.get('password')
 
         user = authenticate(username=username, password=password)
 
         if not user:
             return Response({'error': 'Невалиден логин'},status=401)
-        
+
         csrf_token = get_token(request)
-        # when using token
-        #user_data = get_auth_for_user(user)
         tokens = RefreshToken.for_user(user)
         user_data = {
             'user': UserSerializer(user).data,
@@ -118,8 +104,6 @@ class MobileLoginView(APIView):
             }
         }
         return Response(user_data)
-
-
 
 
 def home(request):
@@ -139,7 +123,9 @@ def banlist(request):
     try:
         player = Player.objects.get(profile=request.user)
         context['bans'] = player.banlist.all()
-    except: return render(request,'home.html')
+    except Player.DoesNotExist:
+        logger.warning("Player profile not found for user %s", request.user)
+        return render(request,'home.html')
     return render(request,template_name,context)
 @csrf_exempt
 @login_required
@@ -151,13 +137,15 @@ def unblock_user(request, username):
         user_to_unblock = User.objects.get(username=username)
         player.banlist.remove(user_to_unblock)
         context['bans'] = player.banlist.all()
-    except: return render(request,'home.html')
+    except Exception:
+        logger.exception("Failed to unblock user %s", username)
+        return render(request,'home.html')
     return render(request,template_name,context)
 ####################### CONTENT ######################
 @csrf_exempt
 @login_required
 def publications(request):
-    template_name = 'content/alldata.html' 
+    template_name = 'content/alldata.html'
     context = {'title':'Текущи беседи, дискусии, задачи и желания'}
     try:
         player = Player.objects.get(profile=request.user)
@@ -167,11 +155,13 @@ def publications(request):
         context['tasks'] = list(alltasks.exclude(
                                 task_id__in=exclude_list).exclude(
                                 task_type=TaskType.PRIVATE.value))
-        
+
         exclude_list = [item.item_id for item in player.itembox.all()]
         context['items'] = list(allitems.filter(hero=None).exclude(
             item_id__in=exclude_list))
-    except: return render(request,'home.html')
+    except Exception:
+        logger.exception("Failed to load publications for user %s", request.user)
+        return render(request,'home.html')
     return render(request,template_name,context)
 
 ####################### PROFILE ######################
@@ -180,20 +170,20 @@ class RegisterView(FormView):
     form_class = RegisterForm
     redirect_authenticated_user = True
     success_url = reverse_lazy('owntasks')
-    
+
     def form_valid(self, form):
         user = form.save()
         if user:
             login(self.request, user)
-            
+
         return super(RegisterView, self).form_valid(form)
 class MyLoginView(LoginView):
     template_name = 'player/login.html'
     redirect_authenticated_user = True
-    
+
     def get_success_url(self):
-        return reverse_lazy('owntasks') 
-    
+        return reverse_lazy('owntasks')
+
     def form_invalid(self, form):
         messages.error(self.request,'Невалидно потребителско име или парола')
         return self.render_to_response(self.get_context_data(form=form))
@@ -204,37 +194,37 @@ class ChangeMail(LoginRequiredMixin, View):
         context = {
             'user_form': user_form,
         }
-        
+
         return render(request, 'player/change_mail.html', context)
-    
+
     def post(self,request):
         user_form = UserUpdateForm(
-            request.POST, 
+            request.POST,
             instance=request.user
         )
 
         if user_form.is_valid():
             user_form.save()
-            
+
             messages.success(request,'Your profile has been updated successfully')
-            
+
             return redirect('profile')
         else:
             context = {
                 'user_form': user_form,
             }
             messages.error(request,'Error updating you profile')
-            
+
             return render(request, 'player/profile.html', context)
 class PlayerChangeStatus(APIView):
     serializer_class = PlayerSerializer.create(PlayerFields.changestatus())
     def post(self, request):
         serializer = self.serializer_class(data=request.data)
-        if serializer.is_valid(): 
+        if serializer.is_valid():
             return Response(status=status.HTTP_404_NOT_FOUND)#ако е валиден значи това е месъществуващ играч
         player_id = serializer.data.get('player_id')
         receivedstatus = serializer.data.get('status')
-        if player_id == "" or player_id is None: 
+        if player_id == "" or player_id is None:
             return Response(status=status.HTTP_404_NOT_FOUND)
         try:
             player = Player.objects.get(player_id=player_id)
@@ -243,18 +233,21 @@ class PlayerChangeStatus(APIView):
             player = Player.objects.get(player_id=player_id)
             response = {'ID':player.player_id,'status':player.status}
             return Response(response, status=status.HTTP_202_ACCEPTED)
-        except:
+        except Exception:
+            logger.exception("Failed to change status for player %s", player_id)
             return Response(status=status.HTTP_304_NOT_MODIFIED)
 ####################### ITEMS ########################
 @csrf_exempt
 @login_required
 def my_itembox(request):
-    template_name = 'items/myitems_list.html' 
+    template_name = 'items/myitems_list.html'
     context = {}
     try:
         player = Player.objects.get(profile=request.user)
         context['items'] = player.itembox.all()
-    except: return render(request,'home.html')
+    except Player.DoesNotExist:
+        logger.warning("Player profile not found for user %s", request.user)
+        return render(request,'home.html')
     return render(request,template_name,context)
 @csrf_exempt
 @login_required
@@ -270,7 +263,9 @@ def my_needs(request):
             player_id=player.player_id
             ).filter(item_type=ItemType.SERVICE.value)
         context['items'] = list(needs) + list(services)
-    except: return render(request,'home.html')
+    except Player.DoesNotExist:
+        logger.warning("Player profile not found for user %s", request.user)
+        return render(request,'home.html')
     return render(request,template_name,context)
 class OwnItemList(LoginRequiredMixin, ListView):
     model = Player
@@ -280,7 +275,9 @@ class OwnItemList(LoginRequiredMixin, ListView):
         context = {}
         try:
             player = Player.objects.get(profile=self.request.user)
-        except:pass
+        except Player.DoesNotExist:
+            logger.warning("Player profile not found for user %s", self.request.user)
+            return context
         context['items'] = player.itembox.filter(owner=self.request.user)
         return context
 class ExternItemList(LoginRequiredMixin, ListView):
@@ -291,7 +288,9 @@ class ExternItemList(LoginRequiredMixin, ListView):
         context = {}
         try:
             player = Player.objects.get(profile=self.request.user)
-        except:pass
+        except Player.DoesNotExist:
+            logger.warning("Player profile not found for user %s", self.request.user)
+            return context
         my_gifts = player.itembox.filter(
             player_id=player.player_id
             ).filter(item_type=ItemType.GIFT.value)
@@ -305,17 +304,14 @@ class ExternItemList(LoginRequiredMixin, ListView):
         return context
 class AllItemsList(LoginRequiredMixin, ListView):
     model=Item
-    context_object_name = 'items' 
+    context_object_name = 'items'
     template_name = 'items/allitem_list.html'
     def get_context_data(self, **kwargs):
         context = {}
         player = Player.objects.get(profile=self.request.user)
         exclude_list = [item.item_id for item in player.itembox.all()]
-        print('Items exluded')
         untaken = Item.objects.filter(hero=None)
-        print('Heroes exluded')
         context['items'] = untaken.all().exclude(item_id__in=exclude_list)
-        print('Data prepared')
         try:
             player_filter = ItemFilter.objects.get(owner=player.profile)
             filter_data = player_filter.get_filter_data()
@@ -324,9 +320,8 @@ class AllItemsList(LoginRequiredMixin, ListView):
                 messages.success(self.request,'Има приложен филтър')
                 filter_form_object = ItemFilterCreateForm(data=model_to_dict(player_filter))
                 context['filter'] = filter_form_object
-        except: pass
-            #messages.error(self.request,'Няма записан филтър на предметите') 
-        print(context)
+        except ItemFilter.DoesNotExist:
+            pass
         return context
 
 ####################### TASKS ########################
@@ -338,7 +333,7 @@ class OwnTaskList(LoginRequiredMixin, ListView):
         context = {}
         try:
             player = Player.objects.get(profile=self.request.user)
-            tasks = [task for task in player.missionbox.all().order_by('created_on') 
+            tasks = [task for task in player.missionbox.all().order_by('created_on')
                      if player.player_id == task.player_id]
             context['tasks'] = tasks
             context['heroes'] = {}
@@ -346,9 +341,10 @@ class OwnTaskList(LoginRequiredMixin, ListView):
                 if task.personal:
                     heroes = [user.username for user in task.workers.all()]
                     context['heroes'][task.task_id] = heroes
-        except:pass        
+        except Player.DoesNotExist:
+            logger.warning("Player profile not found for user %s", self.request.user)
         return context
-    
+
 class ExternTaskList(LoginRequiredMixin, ListView):
     model = Player
     context_object_name = 'tasks'
@@ -357,12 +353,13 @@ class ExternTaskList(LoginRequiredMixin, ListView):
         context = {}
         try:
             player = Player.objects.get(profile=self.request.user)
-            missionbox = [task for task in player.missionbox.all() 
+            missionbox = [task for task in player.missionbox.all()
                           if player.profile in task.workers.all()]
-            context['tasks'] = missionbox 
-        except:pass
+            context['tasks'] = missionbox
+        except Player.DoesNotExist:
+            logger.warning("Player profile not found for user %s", self.request.user)
         return context
-    
+
 class WaitingTaskList(LoginRequiredMixin, ListView):
     model = Player
     context_object_name = 'tasks'
@@ -371,37 +368,36 @@ class WaitingTaskList(LoginRequiredMixin, ListView):
         context = {}
         try:
             player = Player.objects.get(profile=self.request.user)
-            tasks = [task for task in player.missionbox.all() 
+            tasks = [task for task in player.missionbox.all()
                      if player.profile in task.waiting_list.all()]
             context['tasks'] = tasks
-        except:pass
+        except Player.DoesNotExist:
+            logger.warning("Player profile not found for user %s", self.request.user)
         return context
 class MyTasksList(LoginRequiredMixin, ListView):
     model = Task
     context_object_name = 'tasks'
-    template_name = 'tasks/mytasks_list.html' #'tasks/alltask_list.html'
+    template_name = 'tasks/mytasks_list.html'
     def get_context_data(self, **kwargs):
-        #print(self.request.__dict__)
         context = {}
         try:
             player = Player.objects.get(profile=self.request.user)
-
-            context['tasks'] = player.missionbox.all().order_by('category') 
-        except: pass
+            context['tasks'] = player.missionbox.all().order_by('category')
+        except Player.DoesNotExist:
+            logger.warning("Player profile not found for user %s", self.request.user)
         return context
 class MyTasksChatList(LoginRequiredMixin, ListView):
     model = Task
     context_object_name = 'tasks'
-    template_name = 'tasks/mytasks_chat_list.html' #'tasks/alltask_list.html'
+    template_name = 'tasks/mytasks_chat_list.html'
     def get_context_data(self, **kwargs):
-        #print(self.request.__dict__)
         context = {}
         try:
             player = Player.objects.get(profile=self.request.user)
-            
-            context['tasks'] = [task for task in player.missionbox.all().order_by('category') 
+            context['tasks'] = [task for task in player.missionbox.all().order_by('category')
                                 if not task.is_hidden]
-        except: pass
+        except Player.DoesNotExist:
+            logger.warning("Player profile not found for user %s", self.request.user)
         return context
 class AllTasksList(LoginRequiredMixin, ListView):
     model = Task
@@ -424,10 +420,8 @@ class AllTasksList(LoginRequiredMixin, ListView):
                 messages.info(self.request,'Има приложен филтър!')
                 filter_form_object = TaskFilterCreateForm(data=model_to_dict(player_filter))
                 context['filter'] = filter_form_object
-            """else:
-                messages.warning(self.request,'Филтъра е празен!')"""
-        except: pass
-            #messages.error(self.request,'Няма записан филтър на задачите!')            
+        except TaskFilter.DoesNotExist:
+            pass
         return context
 ####################### MESSAGES ########################
 @csrf_exempt
@@ -438,20 +432,22 @@ def inbox_list(request):
     try:
         player = Player.objects.get(profile=request.user)
         context['tasks'] = player.get_task_inbox()
-    except:
-        print('Грешка в списъка с поща')
+    except Player.DoesNotExist:
+        logger.warning("Player profile not found for user %s", request.user)
     return render(request,htmldoc,context)
 
 class TaskInboxList(LoginRequiredMixin, ListView):
     model = Task
     context_object_name = 'tasks'
-    template_name = 'messages/task/task_inbox_list.html' #'tasks/alltask_list.html'
+    template_name = 'messages/task/task_inbox_list.html'
     def get_context_data(self, **kwargs):
         context = {'title':'Задачи с кореспонденция'}
         try:
             player = Player.objects.get(profile=self.request.user)
             context['tasks'] = player.get_task_inbox()
-        except: context['tasks'] = player.missionbox.all()
+        except Player.DoesNotExist:
+            logger.warning("Player profile not found for user %s", self.request.user)
+            context['tasks'] = player.missionbox.all()
         return context
 class TaskMessageList(LoginRequiredMixin, ListView):
     model = Message
@@ -465,7 +461,8 @@ class TaskMessageList(LoginRequiredMixin, ListView):
             task_id = self.kwargs.get('task_id')
             context['task'] = Task.objects.get(task_id=task_id)
             context['taskmessages'] = player.get_task_messages(task_id)
-        except: pass
+        except Exception:
+            logger.exception("Failed to load task message list for user %s", self.request.user)
         return context
 class TaskHistory(LoginRequiredMixin, ListView):
     model = Message
@@ -478,19 +475,22 @@ class TaskHistory(LoginRequiredMixin, ListView):
             task_id = self.kwargs.get('task_id')
             context['task'] = Task.objects.get(task_id=task_id)
             context['taskmessages'] = player.get_task_messages(task_id)
-        except: pass
+        except Exception:
+            logger.exception("Failed to load task history for user %s", self.request.user)
         return context
 class ItemInboxList(LoginRequiredMixin, ListView):
     model = Item
     context_object_name = 'items'
-    template_name = 'messages/item/item_inbox_list.html' #'tasks/alltask_list.html'
+    template_name = 'messages/item/item_inbox_list.html'
     def get_context_data(self, **kwargs):
         context = {}
         try:
             player = Player.objects.get(profile=self.request.user)
             context['items'] = player.get_posted_items()
             context['unread'] = player.get_unread_item_messages()
-        except: context['items'] = player.itembox.all()
+        except Player.DoesNotExist:
+            logger.warning("Player profile not found for user %s", self.request.user)
+            context['items'] = player.itembox.all()
         return context
 class ItemMessageList(LoginRequiredMixin, ListView):
     model = Message
@@ -503,8 +503,9 @@ class ItemMessageList(LoginRequiredMixin, ListView):
             item_id = self.kwargs.get('item_id')
             context['item'] = Item.objects.get(item_id=item_id)
             context['items'] = player.get_posted_items()
-            context['itemmessages'] = player.get_item_messages(self.kwargs.get('item_id')) #task.postbox.message.all()
-        except: pass
+            context['itemmessages'] = player.get_item_messages(self.kwargs.get('item_id'))
+        except Exception:
+            logger.exception("Failed to load item message list for user %s", self.request.user)
         return context
 ####################### BAN OPERATIONS ########################
 class BanHero(LoginRequiredMixin, ListView):
@@ -523,24 +524,8 @@ class BanHero(LoginRequiredMixin, ListView):
                 messages.success(self.request, f"{unwanted.username} е блокиран")
             else:
                 messages.warning(self.request, "Не може да се изпълни")
-            context['bans'] = player.banlist.all()#get(task_id=self.kwargs.get("task_id"))
-        except:
+            context['bans'] = player.banlist.all()
+        except Exception:
+            logger.exception("Failed to ban user %s", self.kwargs.get("username"))
             messages.error(self.request,'Грешка в операцията')
-            #return render(self.request,'error.html')
         return context
-    
-
-
-"""
-class MyItemsList(LoginRequiredMixin, ListView):
-    model = Item
-    context_object_name = 'items'
-    template_name = 'items/myitems_list.html' 
-    def get_context_data(self, **kwargs):
-        context = {}
-        try:
-            player = Player.objects.get(profile=self.request.user)
-            context['items'] = player.itembox.all()
-        except: pass
-        return context
-"""

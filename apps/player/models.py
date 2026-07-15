@@ -1,3 +1,5 @@
+import logging
+
 from django.db import models
 from django.contrib.auth.models import User
 from channels.layers import get_channel_layer
@@ -14,6 +16,8 @@ from ..item.operate import ItemType
 from ..filters.models import TaskFilter, ItemFilter
 from ..message.models import Message
 from ..notifications.models import Notifications, NType
+
+logger = logging.getLogger(__name__)
 
 
 class PlayerStatus(Enum):
@@ -92,13 +96,13 @@ class Player(models.Model):
                     pil_image = Image.open(message.image)
                     pil_image.thumbnail(properties.IMAGE_SIZE) #or resize
                     pil_image.save(message.image.path)
-                    #print('IMAGE PATH: ', message.image.path)
                     pil_image.close()
 
                 target.msgbox.add(message)
-                
+
                 return True
-            except:
+            except Exception:
+                logger.exception("Failed to push message from player %s", self.player_id)
                 return False
     def inbox(self):
         messages = dict()
@@ -190,7 +194,6 @@ class Player(models.Model):
             ch = get_channel_layer()
             for member in group:
                 async_to_sync(ch.group_send)(member,{'type':'notification','message':message})
-                print('Статус съобщение до:', member)
     def notify_event(self)->None: ...
 
     ###################      missions      ###################
@@ -219,7 +222,8 @@ class Player(models.Model):
                 task.save()
             self.missionbox.add(task)
             return True
-        except: 
+        except Exception:
+            logger.exception("Failed to save task and missionbox for player %s", self.player_id)
             task_fields['error'] = 'saving task and missionbox'
             return False
     def take_mission(self,task_id:str):
@@ -235,7 +239,9 @@ class Player(models.Model):
                 self.missionbox.add(task)
                 self.notify_status(task,'прие')
                 return True
-        except: return False
+        except Exception:
+            logger.exception("Failed to take mission %s for player %s", task_id, self.player_id)
+            return False
     def add_listener(self,task_id):
         task=None
         try:
@@ -246,7 +252,8 @@ class Player(models.Model):
                 if task.add_listener(self.profile):
                     return f'Добавен в списъка на {task.name}'
             else: return f'ти си в списъка на {task.name}'
-        except:
+        except Exception:
+            logger.exception("Failed to add listener for task %s", task_id)
             return f'Грешка при добавяне в списък с чакащи {task}'
     def abort_mission(self,task_id):
         try:
@@ -256,7 +263,8 @@ class Player(models.Model):
             task.abort()
             self.notify_status(task,'ОТМЕНЯ')
             return True
-        except:
+        except Exception:
+            logger.exception("Failed to abort mission %s", task_id)
             return {'error':'Player_abort_mission'}
     def archive_mission(self,task_id):
         try:
@@ -269,9 +277,10 @@ class Player(models.Model):
             if task.msgbox.count() > 0: task.archive()
             else: task.delete()
             return True
-        except:
+        except Exception:
+            logger.exception("Failed to archive mission %s", task_id)
             return {'error':'Player_abort_mission'}
-    def cancel_mission(self,task_id): 
+    def cancel_mission(self,task_id):
         try:
             task = Task.objects.get(task_id=task_id)
             
@@ -292,7 +301,8 @@ class Player(models.Model):
                 if task.player_id == 'system':
                     task.delete()
             return True
-        except:
+        except Exception:
+            logger.exception("Failed to cancel mission %s", task_id)
             return {'error':'Player_cancel_mission'}
     # да се връща код на изпълнение за да се разпознава дали мисията е изтрита или само премахната от списъка
     def remove_mission(self,task_id):
@@ -318,9 +328,10 @@ class Player(models.Model):
                 task.player_id = 'system'
                 task.save(update_fields=['player_id',])
             return True
-        except:
+        except Exception:
+            logger.exception("Failed to remove mission %s", task_id)
             return False
-    def finish_mission(self,task_id): 
+    def finish_mission(self,task_id):
         try:
             task = Task.objects.get(task_id=task_id)
             if task.player_id != self.player_id:
@@ -330,15 +341,17 @@ class Player(models.Model):
                     self.notify_status(task,'завърши')
                     return True
             return False
-        except:
+        except Exception:
+            logger.exception("Failed to finish mission %s", task_id)
             return {'error':'Player_cancel_mission'}
-    def remove_listener(self,task_id): 
+    def remove_listener(self,task_id):
         try:
             task = Task.objects.get(task_id=task_id)
             self.missionbox.remove(task)
             task.remove_listener(self.profile)
             return True
-        except:
+        except Exception:
+            logger.exception("Failed to remove listener for task %s", task_id)
             return False
     ###################      items      ###################
     def create_item(self,item_fields:dict): 
@@ -366,7 +379,9 @@ class Player(models.Model):
                 item.start(self.profile)
                 return True
             return False
-        except: return False
+        except Exception:
+            logger.exception("Failed to take delivery for item %s", item_id)
+            return False
     def cancel_delivery(self,item_id:str):
         try:
             item = Item.objects.get(item_id=item_id)
@@ -375,9 +390,10 @@ class Player(models.Model):
 
             self.itembox.remove(item)
             item.restart()
-            
+
             return True
-        except:
+        except Exception:
+            logger.exception("Failed to cancel delivery for item %s", item_id)
             return False
     ###################  ban operations ###################
     def remove_itemhero(self,hero:User):
@@ -404,8 +420,9 @@ class Player(models.Model):
                 player_filter.__dict__[key] = fields[key]
             if bool(fields):
                 player_filter.save(update_fields=list(fields.keys()))
-            return True 
-        except:
+            return True
+        except Exception:
+            logger.exception("Failed to save %s filter for player %s", filter_type, self.player_id)
             return False
     ###################      other      ###################
     def update(self): self.updated = start_time()

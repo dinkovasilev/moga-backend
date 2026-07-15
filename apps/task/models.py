@@ -1,3 +1,5 @@
+import logging
+
 from django.db import models
 from django.utils import timezone
 from django.contrib.auth.models import User
@@ -6,6 +8,9 @@ from ..tools.operate import *
 from ..message.models import Message
 from ..notifications.models import ChatMessage
 from ..catalogs.models import TCategory
+
+logger = logging.getLogger(__name__)
+
 
 class Task(models.Model):
     """class Meta: unique_together = (('task_id','player_id'),)"""
@@ -59,7 +64,7 @@ class Task(models.Model):
                             editable=True,null=True,blank=True)
     valid_to = models.DateTimeField(
                             verbose_name='Валидна до',
-                            default=deadline())
+                            default=deadline)
     workers = models.ManyToManyField(User, related_name='workers')
     waiting_list = models.ManyToManyField(User, related_name='listeners')
     msgbox = models.ManyToManyField(Message, related_name='task_post')
@@ -133,12 +138,14 @@ class Task(models.Model):
         return list(set(options))
     
     def delete(self):
-        try: 
+        try:
             ChatMessage.objects.filter(target_id=self.task_id).delete()
             for msg in self.msgbox.all():
                 msg.delete()
             super(Task, self).delete()
-        except: super(Task, self).delete()
+        except Exception:
+            logger.exception("Failed to clean up related messages for task %s", self.task_id)
+            super(Task, self).delete()
 
     def add_listener(self, player:User):
         if self.task_type == TaskType.LESSON.value:

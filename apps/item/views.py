@@ -1,3 +1,5 @@
+import logging
+
 from rest_framework import status
 from rest_framework.views import APIView
 from rest_framework.response import Response
@@ -14,6 +16,9 @@ from ..player.models import Player
 from .models import Item
 from .forms import ItemCreateForm
 
+logger = logging.getLogger(__name__)
+
+
 class ItemCreate(LoginRequiredMixin,FormView):
     template_name = 'item/item_form.html'
     form_class = ItemCreateForm
@@ -29,10 +34,9 @@ class ItemCreate(LoginRequiredMixin,FormView):
             player_id = self.request.user.profile.player_id
             player = Player.objects.get(player_id=player_id)
             player.create_item(fields)
-        except:
-            context = dict(self.request.POST.items()).keys() 
-            context = fields.values()
-            return render(self.request,'error.html',{'ctx':context})
+        except Exception:
+            logger.exception("Failed to create item for player")
+            return render(self.request, 'error.html', {'ctx': fields.values()})
         return super(ItemCreate, self).form_valid(form)
 class ItemDetail(LoginRequiredMixin, DetailView):
     model = Item
@@ -43,7 +47,8 @@ class ItemDetail(LoginRequiredMixin, DetailView):
         try:
             item = Item.objects.get(item_id=self.kwargs.get('item_id'))
             context['item'] = item
-        except:pass
+        except Item.DoesNotExist:
+            logger.warning("Item %s not found", self.kwargs.get('item_id'))
         return context
 class ItemUpdate(LoginRequiredMixin, UpdateView):
     model = Item
@@ -79,7 +84,8 @@ class ItemTake(LoginRequiredMixin, DetailView):
         try:
             item = Item.objects.get(item_id=self.kwargs.get('item_id'))
             context['item'] = item
-        except:pass
+        except Item.DoesNotExist:
+            logger.warning("Item %s not found", self.kwargs.get('item_id'))
         return context
 class ItemDelivery(LoginRequiredMixin, DetailView):
     model = Item
@@ -97,7 +103,8 @@ class ItemDelivery(LoginRequiredMixin, DetailView):
                 context['item'] = player.itembox.get(item_id=self.kwargs.get("item_id"))
             else:
                 messages.error(self.request, f"{item_id} Не може да се изпълни")
-        except:
+        except Exception:
+            logger.exception("Failed to process item delivery")
             messages.error(self.request, "Грешка в операцията")
         return context
 class ItemCancel(LoginRequiredMixin, DetailView):
@@ -113,5 +120,6 @@ class ItemCancel(LoginRequiredMixin, DetailView):
             else:
                 messages.error(self.request, "Не може да се изпълни")
             return Item.objects.get(item_id=self.kwargs.get("item_id"))
-        except:
-            return render(self.request,'error.html')
+        except Exception:
+            logger.exception("Failed to cancel item delivery")
+            return render(self.request, 'error.html')

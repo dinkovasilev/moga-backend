@@ -1,14 +1,17 @@
 import json
+import logging
+
 from channels.generic.websocket import AsyncWebsocketConsumer
-#from asgiref.sync import sync_to_async, async_to_sync
 from .models import NType, Notifications, ChatRoom, ChatMessage
 from ..task.models import Task
 from ..item.models import Item
 from ..player.models import Player
 
+logger = logging.getLogger(__name__)
+
+
 class NotifyConsumer(AsyncWebsocketConsumer):
     async def connect(self):
-        #print(self.scope)
         self.user_name = self.scope['url_route']['kwargs']['username']
         self.user_group_name = 'group_' + self.user_name
         await self.channel_layer.group_add(
@@ -16,7 +19,6 @@ class NotifyConsumer(AsyncWebsocketConsumer):
             self.channel_name
         )
         await self.accept()
-        print('Известия на: ', self.user_group_name)
 
         await self.send(text_data=json.dumps({
             'type':'status',
@@ -28,8 +30,6 @@ class NotifyConsumer(AsyncWebsocketConsumer):
         message = text_data_json['message']
         uname = text_data_json['username']
         msgtype = text_data_json['type']
-        
-        print(f'Съобщение: {uname}, type: {msgtype}')
 
         if msgtype == 'notification':
             await self.channel_layer.group_send(
@@ -59,18 +59,15 @@ class NotifyConsumer(AsyncWebsocketConsumer):
             'message': message,
             'target':target,
         })
-        await self.send(text_data=data)  
-        print(f'Заявката за чат в {target} е изпратена')
-    async def notification(self, notification_event): 
+        await self.send(text_data=data)
+    async def notification(self, notification_event):
         message = notification_event['message']
         data = json.dumps({
             'message': message,
             'type':'notification'
         })
-        await self.send(text_data=data)  
-        print(f'Съобщение: {data}s')
+        await self.send(text_data=data)
     async def clear_notifications(self, username:str, target:str):
-        print(f'Async remove notification: {target} for {username}')
         match target:
             case 'all':
                 await Notifications.objects.filter(destination=username).adelete()
@@ -84,7 +81,7 @@ class NotifyConsumer(AsyncWebsocketConsumer):
             self.user_group_name,
             self.channel_name
         )
-    
+
 class ChatConsumer(AsyncWebsocketConsumer):
     http_user = True
     async def connect(self, **kwargs):
@@ -94,10 +91,9 @@ class ChatConsumer(AsyncWebsocketConsumer):
         target = None
         banlist = []
         try:
-            #print(f'USERNAME:{user.username} target ID: {self.lobby_name} LEN: {len(self.lobby_name)}')
             match len(self.lobby_name):
                 case 12:
-                    target = await Task.objects.aget(task_id=self.lobby_name) 
+                    target = await Task.objects.aget(task_id=self.lobby_name)
                     if target.personal:
                         owner = await Player.objects.aget(player_id=target.player_id)
                         banlist = [user async for user in owner.banlist.all()]
@@ -105,25 +101,19 @@ class ChatConsumer(AsyncWebsocketConsumer):
                     target = await Item.objects.aget(item_id=self.lobby_name)
                     owner = await Player.objects.aget(player_id=target.player_id)
                     banlist = [user async for user in owner.banlist.all()]
-            
-            #refused = await target.owner.profile.banlist.aget(username=user.username)
-            #също работи: banlist = await sync_to_async(lambda: list(target.owner.profile.banlist.all()))()
-            #[user async for user in target.owner.profile.banlist.select_related()]
 
             if user in banlist:
-                print('Отказан достъп')
+                logger.info("Access denied to lobby %s for user %s", self.lobby_name, user)
                 return
-            
-        except: pass
+
+        except Exception:
+            logger.exception("Failed to resolve lobby target %s", self.lobby_name)
 
         await self.channel_layer.group_add(
             self.lobby_group_name,
             self.channel_name
         )
         await self.accept()
-        
-        #print('Чат канал идентификатор:',self.channel_name)
-        print('Чат група: ', self.lobby_group_name)
 
         await self.send(text_data=json.dumps({
             'type':'connection_established',
@@ -143,10 +133,9 @@ class ChatConsumer(AsyncWebsocketConsumer):
         message = text_data_json['message']
         username = text_data_json['username']
         sender = self.scope['user']
-        print(f'{sender.username}:',message)
-        
+
         if message == '': return
-        
+
         await ChatMessage.objects.acreate(owner=sender,
                                           target_id=self.lobby_name,
                                           message=message)
@@ -157,16 +146,15 @@ class ChatConsumer(AsyncWebsocketConsumer):
                 'username':username,
             }
         )
-    async def group_message(self, event): 
+    async def group_message(self, event):
         message = event['message']
         username = event['username']
         data = json.dumps({
             'message': message,
             'username':username,
         })
-        await self.send(text_data=data)  
-        #print(f'Съобщението {data} от {username} е изпратено до групата')
-    async def status_message(self, event): 
+        await self.send(text_data=data)
+    async def status_message(self, event):
         status = event['status']
         username = event['username']
         message = event['message']
@@ -175,7 +163,7 @@ class ChatConsumer(AsyncWebsocketConsumer):
             'username':username,
             'message':message
         })
-        await self.send(text_data=data) 
+        await self.send(text_data=data)
     async def disconnect(self, close_code):
         user = self.scope['user']
         await self.channel_layer.group_send(
@@ -193,7 +181,5 @@ class ChatConsumer(AsyncWebsocketConsumer):
         try:
             chat_room = await ChatRoom.objects.aget(room_id = self.lobby_name)
             await chat_room.users_in_room.aremove(user)
-            print(f'Изваждам: {user.username}, от списъка на {self.lobby_name}')
-        except:
-            print('Чат групата не е открита')
-        
+        except ChatRoom.DoesNotExist:
+            logger.warning("Chat room %s not found on disconnect", self.lobby_name)

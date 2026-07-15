@@ -1,3 +1,5 @@
+import logging
+
 from django.shortcuts import render, redirect
 from django.views.decorators.csrf import csrf_protect, csrf_exempt
 from django.contrib.auth.decorators import login_required
@@ -13,6 +15,9 @@ from ..task.models import Task,TaskType
 from ..item.models import Item
 from .serializer import *
 
+logger = logging.getLogger(__name__)
+
+
 class TaskCreateMessage(LoginRequiredMixin,FormView):
     template_name = 'task/task_message.html'
     form_class = CreateMessageForm
@@ -24,7 +29,8 @@ class TaskCreateMessage(LoginRequiredMixin,FormView):
             task = Task.objects.get(task_id=self.kwargs.get('task_id'))
             context['task'] = task
             context['form'] = self.form_class
-        except:pass
+        except Task.DoesNotExist:
+            logger.warning("Task %s not found", self.kwargs.get('task_id'))
         return context
     def form_valid(self, form):
         task_id = self.kwargs.get('task_id')
@@ -54,7 +60,8 @@ class ItemCreateMessage(LoginRequiredMixin, DetailView):
         try:
             item = Item.objects.get(item_id=self.kwargs.get('item_id'))
             context['item'] = item
-        except:pass
+        except Item.DoesNotExist:
+            logger.warning("Item %s not found", self.kwargs.get('item_id'))
         return context
 
 @csrf_exempt
@@ -79,8 +86,8 @@ def task_save_message(request):
             else:
                 messages.error(request,'Грешка при изпращане')
             return HttpResponseRedirect(reverse('task-messages',kwargs={'task_id':target.task_id}))
-            #return redirect(f'/task/messages/' + task_id)
-        except: 
+        except Exception:
+            logger.exception("Failed to save task message")
             return render(request, 'error.html', {'ctx':context})
 @csrf_exempt
 @login_required
@@ -98,12 +105,12 @@ def item_save_message(request):
                 return HttpResponseRedirect(reverse('items-inbox'))
             if player.push_message(target,text):
                 messages.success(request, "Съобщението е изпратено")
-                #return render(request,'home.html')
                 return HttpResponseRedirect(reverse('tasks-inbox'))
             else:
                 context = [player.player_id,target.item_id]
                 return render(request, 'error.html', {'ctx':context})
-        except: 
+        except Exception:
+            logger.exception("Failed to save item message")
             return render(request, 'error.html', {'ctx':context})
 
 @csrf_exempt
@@ -118,7 +125,8 @@ def message_up_vote(request, message_id, task_id):
             else:
                 messages.warning(request, "Вота не е приет")
             return redirect(f'/task/messages/' + task_id)
-        except: 
+        except Exception:
+            logger.exception("Failed to process message vote")
             return render(request, 'error.html', {'ctx':context})
 @csrf_exempt
 @login_required
@@ -132,5 +140,6 @@ def message_down_vote(request, message_id, task_id):
             else:
                 messages.warning(request, "Вота не е приет")
             return redirect(f'/task/messages/' + task_id)
-        except: 
+        except Exception:
+            logger.exception("Failed to process message vote")
             return render(request, 'error.html', {'ctx':context})
