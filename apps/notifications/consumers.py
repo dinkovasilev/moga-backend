@@ -13,11 +13,11 @@ logger = logging.getLogger(__name__)
 class NotifyConsumer(AsyncWebsocketConsumer):
     async def connect(self):
         self.user_name = self.scope['url_route']['kwargs']['username']
+        self.user_group_name = 'group_' + self.user_name
         user = self.scope['user']
         if not user.is_authenticated or user.username != self.user_name:
             await self.close()
             return
-        self.user_group_name = 'group_' + self.user_name
         await self.channel_layer.group_add(
             self.user_group_name,
             self.channel_name

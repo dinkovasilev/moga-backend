@@ -1,4 +1,3 @@
-1. Description
 # MOGA Backend
 
 Django-based backend application designed to support a mobile platform with features such as:
@@ -16,41 +15,71 @@ Django-based backend application designed to support a mobile platform with feat
 - Django REST Framework
 - Channels (WebSockets)
 - SQLite (dev)
-- Redis (optional)
+- Redis (required for chat/notifications, via Channels)
 
 ## Setup
 
 ### 1. Clone the repository
 
 ```bash
-git clone <repo-url>
-cd moga-backend-public/backend
+git clone https://github.com/dinkovasilev/moga-backend.git
+cd moga-backend
+```
 
-2. Create virtual environment
+### 2. Create virtual environment
+
+```bash
 python3 -m venv venv
 source venv/bin/activate
+```
 
-3. Install dependencies
+### 3. Install dependencies
+
+```bash
 pip install -r requirements.txt
+```
 
-4. Setup environment variables
-Create a .env file based on .env.example
+### 4. Setup environment variables
 
-5. Run migrations
+Copy `.env.example` to `.env` and set a real `SECRET_KEY`:
+
+```bash
+cp .env.example .env
+python3 -c "import secrets; print(secrets.token_urlsafe(50))"  # paste the output into .env
+```
+
+### 5. Run Redis (required for chat/notifications)
+
+```bash
+redis-server
+```
+
+### 6. Run migrations
+
+```bash
 python manage.py migrate
+```
 
-6. Create superuser (optional)
+This also seeds a default set of task/item categories so the demo isn't empty.
+
+### 7. Create superuser (optional)
+
+```bash
 python manage.py createsuperuser
+```
 
-7. Run server
+### 8. Run server
+
+```bash
 python manage.py runserver
+```
 
-Notes
-Project is under active development
+## Notes
 
-Some components are still being refactored and extended
+- Project is under active development, primarily a personal hobby project
+- Item management (`apps/item`) is a known work in progress
+- Designed as a backend for a mobile application
 
-Designed as a backend for a mobile application
+## Author
 
-Author
 Dinko Vasilev
