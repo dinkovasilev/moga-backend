@@ -29,6 +29,15 @@ DEBUG = config('DEBUG', default=False, cast=bool)
 
 ALLOWED_HOSTS = config('ALLOWED_HOSTS', default='127.0.0.1,localhost', cast=lambda v: [s.strip() for s in v.split(',')])
 
+# Django checks the Origin header on unsafe requests against this list - needed
+# whenever the site is reached through a domain other than localhost/127.0.0.1.
+# Must include the scheme, e.g. "https://example.com".
+CSRF_TRUSTED_ORIGINS = config(
+    'CSRF_TRUSTED_ORIGINS',
+    default='',
+    cast=lambda v: [s.strip() for s in v.split(',') if s.strip()],
+)
+
 
 # Application definition
 
