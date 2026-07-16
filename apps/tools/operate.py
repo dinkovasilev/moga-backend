@@ -1,20 +1,16 @@
 import string
-import random
-from time import time_ns
+import secrets
 from django.db.models import Model
 from django.utils import timezone
-#import datetime
 
 
 class Id:
     def generate(length:int):
         alphabet_lower = list(string.ascii_lowercase)
         alphabet_upper = list(string.ascii_uppercase)
-        numbers = [str(i) for i in range(9)]
-        specials = ['!','@','#','_','-','<','>']
-        symbols = alphabet_lower + alphabet_upper + numbers #+ specials
-        random.seed(time_ns())
-        return ''.join(random.choices(symbols,k=length))
+        numbers = [str(i) for i in range(10)]
+        symbols = alphabet_lower + alphabet_upper + numbers
+        return ''.join(secrets.choice(symbols) for _ in range(length))
 
     def isvalid(target:Model,target_id):
         return target.objects.filter(target_id=target_id).count() == 0
@@ -40,11 +36,11 @@ class StringBox:
         return box.split(StringBox.divider)
     def create(content:list)->list:
         if len(content) == 0: return ""
-        else: 
+        else:
             elements = ''
             for element in content:
                 elements += element + StringBox.divider
-            elements = elements[:-1]
+            return elements[:-1]
     def add(box:str,element:str)->str:
         if len(box) == 0: return element
         else:

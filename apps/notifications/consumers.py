@@ -13,6 +13,10 @@ logger = logging.getLogger(__name__)
 class NotifyConsumer(AsyncWebsocketConsumer):
     async def connect(self):
         self.user_name = self.scope['url_route']['kwargs']['username']
+        user = self.scope['user']
+        if not user.is_authenticated or user.username != self.user_name:
+            await self.close()
+            return
         self.user_group_name = 'group_' + self.user_name
         await self.channel_layer.group_add(
             self.user_group_name,
@@ -88,6 +92,9 @@ class ChatConsumer(AsyncWebsocketConsumer):
         self.lobby_name = self.scope['url_route']['kwargs']['lobby_name']
         self.lobby_group_name = 'group_' + self.lobby_name
         user = self.scope['user']
+        if not user.is_authenticated:
+            await self.close()
+            return
         target = None
         banlist = []
         try:
@@ -104,10 +111,13 @@ class ChatConsumer(AsyncWebsocketConsumer):
 
             if user in banlist:
                 logger.info("Access denied to lobby %s for user %s", self.lobby_name, user)
+                await self.close()
                 return
 
         except Exception:
             logger.exception("Failed to resolve lobby target %s", self.lobby_name)
+            await self.close()
+            return
 
         await self.channel_layer.group_add(
             self.lobby_group_name,

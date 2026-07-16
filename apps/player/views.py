@@ -83,6 +83,7 @@ def mobile_login(request):
 
 
 class MobileLoginView(APIView):
+    permission_classes = [AllowAny]
     def post(self, request, *args, **kwargs):
 
         username = request.data.get('username')
